@@ -1,431 +1,388 @@
-# Proxmox Workstation – README（改訂版・手順書）
+# Proxmoxワークステーション構築手順（初心者向け・実運用版）
 
-**目的**
-
-* 本リポジトリの構成例に基づき、以下の要件を安定・高性能に満たすための“実運用レベル”の手順をまとめます。
-
-  * Proxmox VE（以下 PVE）を **NVMe 1TB×2 の ZFS ミラー**にインストール（OS/VM 共用）
-  * **HDD 4TB×2 の ZFS ミラー**を写真保管（共有）用に構築
-  * VM 構成：
-
-    * Windows（開発用：Cursor + Docker Desktop）
-    * Windows（動画編集用：プロキシ編集）
-    * Ubuntu ×6（RKE2 学習用クラスター）
-  * 将来：**dGPU（例：RTX 5070）を Windows VM にパススルー**
-
-> ハード構成（想定）
->
-> * CPU: Ryzen 9 7900（iGPU あり）
-> * MB: ASUS ROG STRIX B650-A GAMING WIFI（ECC UDIMM 対応）
-> * RAM: DDR5 ECC UDIMM 32GB（→後日 32GB 追加で計 64GB 推奨）
-> * NVMe: Crucial T500 1TB ×2（ZFS mirror：`rpool`）
-> * HDD: WD Red Plus 4TB ×2（ZFS mirror：`tank`）
-> * PSU: RM850e (ATX3.1/12V-2x6)
-> * Case: Corsair 3000D（前 120mm×2 付属 + 後 120mm×1 追加）
+> **目的**: 1台の自作PCに Proxmox VE を入れ、
+> ① Windows 動画編集 VM（RTX 3060 パススルー）と ② Windows 開発 VM（Docker Desktop/Cursor）を **同時にサクサク**動かす。
+> さらに **ZFS スナップショットで安全運用**、**Parsec で快適リモート**、**ECC 有効化確認**まで含む。
 
 ---
 
-## 0. 物理組み立てと配線のポイント（GPU 増設前提）
+## 目次
 
-* **M.2 スロット**：NVMe は **M.2\_1 + M.2\_2** に装着（将来 PCIEX16\_2 を使っても M.2\_3 影響を受けにくい）
-* **ファン気流**：フロント 2 吸気 → リア 1 排気（後で必要ならトップ排気を追加）
-* **電源ケーブル**：将来の dGPU 用に \*\*12V-2x6（新規格）\*\*を空けておく
-
----
-
-## 1. BIOS 設定（最初に必ず）
-
-1. **BIOS 更新**（最新へ）
-2. **メモリ関連**
-
-   * EXPO（DOCP）を有効化（対応速度で安定動作）
-   * ECC：*Auto/Enabled*（項目がある場合）
-3. **仮想化/パススルー**
-
-   * *SVM*（AMD-V）= Enabled
-   * *IOMMU*（SVM-IOMMU/AMD-IOV）= Enabled
-   * *Above 4G Decoding* = Enabled
-   * *Resizable BAR* = Enabled（GPU パススルー安定化に寄与）
-   * *CSM* = Disabled（UEFI ブート）
-4. **iGPU 出力**：ホスト表示は iGPU（HDMI/DP）を使用（将来 dGPU を丸ごと VM へ）
-
-> メモ：BIOS 名称はバージョン差があります。該当が見つからない場合は *Advanced → PCI Subsystem / NBIO / CPU* 周辺を探してください。
+* [1. 想定ハード構成](#1-想定ハード構成)
+* [2. 配線と初回BIOS設定](#2-配線と初回bios設定)
+* [3. Proxmoxのインストール（ZFSミラー）](#3-proxmoxのインストールzfsミラー)
+* [4. NVMeプールとZVOLの作成](#4-nvmeプールとzvolの作成)
+* [5. ストレージ設計（本書の前提）](#5-ストレージ設計本書の前提)
+* [6. Windows開発VMの作成（Docker/Cursor）](#6-windows開発vmの作成dockercursor)
+* [7. GPUパススルー：Windows編集VMの作成](#7-gpuパススルーwindows編集vmの作成)
+* [8. Parsec と NLE（Premiere/DaVinci）最適化](#8-parsec-と-nlepremieredavinci最適化)
+* [9. ECC 有効化の確認](#9-ecc-有効化の確認)
+* [10. ZFS スナップショットとロールバック](#10-zfs-スナップショットとロールバック)
+* [11. バックアップ（簡易運用）](#11-バックアップ簡易運用)
+* [12. リソース割り当てと“カクつき”防止](#12-リソース割り当てとカクつき防止)
+* [13. 将来拡張（128GB/K8s/RKE2）](#13-将来拡張128gbk8srke2)
+* [14. トラブルシューティング](#14-トラブルシューティング)
+* [15. 付録：よく使うコマンド集](#15-付録よく使うコマンド集)
 
 ---
 
-## 2. Proxmox VE のインストール（ZFS ミラー）
+## 1. 想定ハード構成
 
-### 2-1. インストールメディア作成
+* **CPU**: AMD Ryzen 7 7700（iGPU 付き / 付属Wraith Prism使用）
+* **MB**: ASUS TUF GAMING B650-PLUS WIFI
+* **RAM**: Kingston Server Premier ECC UDIMM DDR5-4800 32GB ×2 = **64GB**
+* **SATA SSD**: Crucial MX500 250GB ×2 → **ZFSミラー（OS用）**
+* **NVMe SSD**: Crucial T500 1TB ×2
+* **GPU**: MSI GeForce RTX 3060 12GB（編集VMへパススルー）
+* **PSU**: Corsair RM850e 850W（将来余力）
+* **Case/Fan**: Corsair 3000D（前面2基 + **リア1基追加**推奨）
+* **ネットワーク**: 1GbE 有線（クライアントPCも **必ず有線**）
 
-* 公式 ISO を取得し、Ventoy/Rufus 等で USB 作成
-
-### 2-2. インストーラの選択
-
-* **Target File System: ZFS (RAID1)** を選択し、2 本の NVMe をミラーに
-* オプション（任意）
-
-  * *ashift=12*（4K 物理セクタ前提）
-  * *compression=zstd*（後からでも可）
-  * *swap* はデフォルトで OK（メモリダンプや OOM 対策）
-
-### 2-3. 初期設定
-
-* ホスト名例：`pve.lab.local`
-* 管理アドレス：固定 IP 推奨（例：`192.168.1.10/24`）
-* `vmbr0` に物理 NIC をブリッジ（デフォルト）
+> 7年間運用を想定。将来は **RAM 128GB**、**キャッシュ用ZVOL 1TB**、（必要なら）**40番台GPU**へ。
 
 ---
 
-## 3. 初回ログイン後のベース設定
+## 2. 配線と初回BIOS設定
 
-SSH または Web UI（https\://\<PVE\_IP>:8006）で実施。
+1. **配線**
+
+* RTX3060 を **下段PCIe**へ（上段でもOK。iGPUをホスト出力に使う）。
+* SATA SSD 2台は同一規格ポートへ。NVMeは M.2\_1 / M.2\_2 に装着。
+* 前面ファン→吸気、リア（必要なら天面）→排気。
+
+2. **BIOS 更新**（ASUS EZ Flash）
+
+* 最新BIOSに更新し、初期化（Load Optimized Defaults）。
+
+3. **仮想化・IOMMU**
+
+* `SVM` = Enabled
+* `IOMMU`/`AMD IOMMU` = Enabled
+
+4. **GPU関連**
+
+* `Primary Display` = **iGPU**（ホスト出力を内蔵GPUに固定）
+* `Above 4G Decoding` = Enabled
+* `Re-Size BAR` = Enabled
+* `CSM` = Disabled
+
+5. **メモリ**
+
+* 初期は JEDEC 4800MT/s（EXPOやOCは安定運用の後で）
+
+6. **ストレージ**
+
+* SATA Mode = AHCI
+
+7. **ファン**
+
+* CPU/CHA ファンカーブを静音〜標準（温度60–70℃付近で回転上昇）
+
+---
+
+## 3. Proxmoxのインストール（ZFSミラー）
+
+1. **インストールUSB** を作成 → 起動
+2. **ターゲット**: MX500 250GB ×2 を選択
+3. **ファイルシステム**: `ZFS (RAID1)` を選択
+
+   * オプションで `ashift=12`（SSD最適）
+4. 管理ネットワーク（vmbr0）/ホスト名/時刻を設定 → インストール完了
+
+> **初期ログイン**: https\://\<Proxmox管理IP>:8006 へブラウザからアクセス
+
+---
+
+## 4. NVMeプールとZVOLの作成
+
+**方針**: NVMe 2枚を別々の **単一ディスクZFSプール** にして役割分離。
+
+* NVMe#1 → `nvme_media`（編集素材用 zvol を作る）
+* NVMe#2 → `nvme_fast`（キャッシュ用 zvol + 開発VM用のZFSストレージ）
+
+### 4.1 プール作成（GUI推奨）
+
+* `Node` → 該当ノード → `Disks` → `ZFS` → `Create: ZFS` で個別に作成
+
+  * `name=nvme_media`, `ashift=12`, デバイス=`/dev/nvme0n1`
+  * `name=nvme_fast`,  `ashift=12`, デバイス=`/dev/nvme1n1`
+
+> CLI派は下記（**デバイス名は必ず確認**）
 
 ```bash
-# 3-1. リポジトリ調整（無償利用の場合は enterprise を外し、no-subscription を追加）
-sed -i 's/^deb/#deb/' /etc/apt/sources.list.d/pve-enterprise.list
-cat >/etc/apt/sources.list.d/pve-no-subscription.list <<'EOF'
-deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription
-EOF
-
-apt update && apt full-upgrade -y
-
-# 3-2. 時刻・言語（必要に応じて）
-timedatectl set-timezone Asia/Tokyo
-
-# 3-3. 必須ツール
-apt install -y qemu-guest-agent sudo vim htop iftop iotop smartmontools
-
-# 3-4. ZFS 圧縮を既定化（任意）
-zfs set compression=zstd rpool
+# 例: 実デバイス確認
+lsblk -o NAME,SIZE,MODEL
+# プール作成
+zpool create -f -o ashift=12 nvme_media /dev/nvme0n1
+zpool create -f -o ashift=12 nvme_fast  /dev/nvme1n1
 ```
 
-> **ZFS ARC（メモリキャッシュ）**：初期 32GB の期間は `zfs_arc_max` を絞ると安定します（例：8GB）。
->
-> ```bash
-> echo 'options zfs zfs_arc_max=8589934592' >/etc/modprobe.d/zfs.conf
-> update-initramfs -u -k all
-> reboot
-> ```
+### 4.2 ZVOL 作成（素材/キャッシュ）
 
----
-
-## 4. ディスク構成：HDD ミラー（写真保管）
-
-HDD 4TB×2 を `tank` というミラープールにします。
+**素材（メディア）用 ZVOL**（約 900GB）
 
 ```bash
-# 物理デバイス確認
-lsblk -o NAME,SIZE,MODEL | grep -iE 'wd|disk'
-
-# 例: /dev/sdb と /dev/sdc が HDD の場合
-zpool create -o ashift=12 tank mirror /dev/disk/by-id/<HDD1-id> /dev/disk/by-id/<HDD2-id>
-
-# おすすめプロパティ
-zfs set compression=zstd tank
-zfs set atime=off tank
-zfs set xattr=sa tank
-
-# 写真用データセット
-zfs create -o recordsize=1M tank/photos
-
-# バックアップ保管用（後述の vzdump 保存先）
-zfs create -o recordsize=1M tank/backups
+zfs create -V 900G -o volblocksize=64K -o compression=lz4 -o atime=off -o logbias=throughput nvme_media/media_zvol
 ```
 
-> 以後、`tank` 側に週次スクラブを設定：
->
-> ```bash
-> cat >/etc/cron.weekly/zpool-scrub <<'EOF'
-> #!/bin/sh
-> /sbin/zpool scrub rpool
-> /sbin/zpool scrub tank
-> EOF
-> chmod +x /etc/cron.weekly/zpool-scrub
-> ```
-
-### 4-1. Proxmox ストレージ登録
-
-* Web UI → **Datacenter → Storage → Add → Directory**
-
-  * ID: `tank-backups` / Directory: `/tank/backups` / Content: **VZDump backup file**
-  * ID: `tank-photos` / Directory: `/tank/photos` / Content: **ISO image, VZDump backup file, VZDisk image**（*共有用途なら ISO/VZDisk は外しても良い*）
-
----
-
-## 5. rpool 上のデータセット設計（VM/編集向け）
-
-NVMe ミラー（`rpool`）にワーク用のデータセットを分け、性能と整理性を両立します。
+**キャッシュ用 ZVOL**（500GB）
 
 ```bash
-# VM 用（デフォルトの local-zfs を使う場合は必須ではない）
-zfs create rpool/vm
-zfs set compression=zstd rpool/vm
-
-# プロキシ素材用（大きめの連続 I/O を想定）
-zfs create -o recordsize=128K rpool/proxy
-zfs set atime=off rpool/proxy
+zfs create -V 500G -o volblocksize=64K -o compression=off -o atime=off -o logbias=throughput nvme_fast/cache_zvol
 ```
 
-> Web UI → Datacenter → Storage → Add → **Directory** で `/rpool/vm` と `/rpool/proxy` を登録（Content: **Disk image, Container**）。
-
----
-
-## 6. 写真共有（Samba） – Windows から参照
-
-Proxmox ホストで簡易に SMB 共有します（専用ファイルサーバ VM を立てる場合はスキップ）。
+**開発VM 用ストレージ**（ZFS データセット）
 
 ```bash
-apt install -y samba
-
-cat >>/etc/samba/smb.conf <<'EOF'
-[photos]
-   path = /tank/photos
-   browseable = yes
-   read only = no
-   guest ok = no
-   valid users = photosuser
-   create mask = 0644
-   directory mask = 0755
-EOF
-
-# 共有ユーザー作成（Linux ユーザー + SMB パスワード）
-useradd -m photosuser
-passwd photosuser
-smbpasswd -a photosuser
-systemctl restart smbd
+zfs create -o compression=lz4 -o atime=off nvme_fast/vmdata
 ```
 
-Windows から：`\\<PVE_IP>\photos` を **ネットワークドライブ割り当て**。
+Proxmox GUI → `Datacenter > Storage > Add > ZFS` で `nvme_fast`（or `nvme_fast/vmdata`）を **VMディスク格納先**として追加。
+
+> **補足**: キャッシュ容量は将来 **1TB**へ拡張推奨（複数プロジェクトでも詰まりにくくなります）。
 
 ---
 
-## 7. Windows 11 VM（動画編集用）
+## 5. ストレージ設計（本書の前提）
 
-### 7-1. ISO 準備
+* **OS**: `rpool`（MX500ミラー）
+* **編集素材**: `nvme_media/media_zvol` を **編集VMへ直付け**（D: など）
+* **編集キャッシュ**: `nvme_fast/cache_zvol` を **編集VMへ直付け**（E: など）
+* **開発VM**: `nvme_fast/vmdata` 上にディスクを作成
 
-* Windows 11 ISO と **virtio-win ISO** を `local` または `local-zfs` の ISO ストレージへアップロード
-
-### 7-2. VM 作成（推奨設定）
-
-* **OS**: Microsoft Windows 11
-* **Machine**: q35 / **BIOS**: OVMF (UEFI) / **Display**: *Default*
-* **TPM**: v2.0（自動作成）
-* **SCSI Controller**: VirtIO SCSI（Single）
-* **Disk**: SCSI, **VirtIO** ブロック, `rpool/vm` に 200–500GB（プロジェクト規模で調整）
-* **CPU**: type `host`, 8–10 vCPU
-* **Memory**: 24–32GB（プロキシ編集前提）
-* **Network**: VirtIO (paravirtualized)
-
-> インストール時に「ドライバが見つかりません」と出たら、virtio ISO の `vioscsi/w11/amd64` を読み込んで続行。ネットワークは `NetKVM/w11/amd64`。
-
-### 7-3. プロキシ編集の配置
-
-* **プロキシ素材/プロジェクト**を `Z:`（例）として `rpool/proxy` を SMB 共有して割り当てる
-* **生素材（4K/HEVC 等）は `\<PVE_IP>\photos`** から読み取り（書き込みは必要に応じて）
-
-> 画面転送は RDP でも可。低遅延・高画質が必要なら **Sunshine + Moonlight** または **Parsec** を検討。
+> ZVOL は **VirtIO-SCSI Single + IOThread=ON + SSDエミュ + Discard=ON** を基本。Windows側は **NTFS 64K クラスタ**推奨。
 
 ---
 
-## 8. Windows 11 VM（開発用：Cursor + Docker Desktop）
+## 6. Windows開発VMの作成（Docker/Cursor）
 
-* **CPU**: 4–6 vCPU、**Memory**: 8–12GB（プロジェクト規模で調整）
-* **Nested Virtualization（WSL2 用）**
+1. **ISO登録**: `Datacenter > Storage > local` の `ISO Images` に Windows ISO と VirtIO ドライバ ISO をアップロード
+2. **VM作成**（例: VMID=200, Name=dev-win）
 
-  * ホストで有効化：
-
-    ```bash
-    echo 'options kvm_amd nested=1' >/etc/modprobe.d/kvm_amd.conf
-    update-initramfs -u -k all
-    reboot
-    ```
-  * VM 設定：CPU type `host`、*Hyper-V* 関連フラグ（Proxmox UI の **Processors → Advanced → Enable Hyper-V**）を有効
-* 初回起動後に Windows 機能で **仮想化基盤**と **WSL** をオン → 再起動 → Docker Desktop / WSL2 を導入
-
----
-
-## 9. Ubuntu テンプレート & RKE2 学習用 6 ノード
-
-### 9-1. Ubuntu クラウドイメージからテンプレート作成
-
-1. **Cloud-Init ISO** を使わず、Proxmox の **Cloud-Init 機能**でパラメータ注入
-2. `ubuntu-24.04-live-server` から通常 VM を作ってクリーンに整える or 公式 cloud image（qcow2）をインポート
-
-**（簡便）通常インストールからテンプレート化の例）**
-
-```bash
-# 初期 VM: vCPU 2 / RAM 2GB / Disk 20GB / Net: VirtIO
-# パッケージ整備
-apt update && apt -y upgrade
-apt install -y qemu-guest-agent curl vim
-systemctl enable qemu-guest-agent --now
-# 余計なログ減らしなど（任意）
-```
-
-* シャットダウン → **Convert to Template**
-* **クローン**で 6 台作成（`rke2-ctrl-1` + `rke2-wkr-[1-5]` など）
-
-### 9-2. RKE2 導入（最小構成）
-
-**コントロールプレーン**（1 台）
-
-```bash
-curl -sfL https://get.rke2.io | sudo sh -
-sudo systemctl enable rke2-server --now
-
-# kubeconfig 取得
-sudo mkdir -p ~/.kube
-sudo cp /etc/rancher/rke2/rke2.yaml ~/.kube/config
-sudo chown $(id -u):$(id -g) ~/.kube/config
-```
-
-**ワーカ**（残り 5 台）
-
-```bash
-curl -sfL https://get.rke2.io | sudo INSTALL_RKE2_TYPE="agent" sh -
-# server の IP を指定
-sudo mkdir -p /etc/rancher/rke2/
-echo 'server: https://<CTRL_IP>:9345' | sudo tee /etc/rancher/rke2/config.yaml
-sudo systemctl enable rke2-agent --now
-```
-
-> 事前に **swapoff** しておくこと（`sudo swapoff -a`、`/etc/fstab` から swap 行をコメントアウト）。
+   * **OS**: Windows 11 ISO / UEFI (OVMF), Q35
+   * **System**: Q35, SCSI Controller=VirtIO SCSI single, **Qemu Agent=ON**, **NUMA=ON**, CPU type=host
+   * **Disk**: Bus=SCSI, Storage=`nvme_fast`（または `nvme_fast/vmdata`）, Size=200GB, **IOThread=ON**, SSD, Discard
+   * **CPU**: 6 vCPU（3 sockets ×2 cores など）
+   * **Memory**: 20–24GB（Ballooning ON）
+   * **NIC**: VirtIO (paravirt)
+3. 初回起動 → Windows セットアップ → VirtIO ISO をマウントし **ネットワーク/ストレージ/balloon ドライバ**を導入
+4. **Docker Desktop**（WSL2バックエンド）導入 → **リソース上限**（CPU/メモリ）を設定
+5. **Cursor** を導入
 
 ---
 
-## 10. GPU パススルー（将来の dGPU 追加時）
+## 7. GPUパススルー：Windows編集VMの作成
 
-> いったん **ホスト表示は iGPU** に固定し、dGPU をまるごと Windows 編集 VM へ。
+### 7.1 カーネルパラメータとVFIO
 
-### 10-1. カーネルパラメータ（systemd-boot 前提）
+1. **カーネルコマンドライン**
 
 ```bash
-# 値を確認
+# 既存内容に追記（amd_iommu=on iommu=pt video=efifb:off）
 cat /etc/kernel/cmdline
-# 末尾に以下を追記（スペース区切り）
-# amd_iommu=on iommu=pt video=efifb:off pcie_acs_override=downstream,multifunction
-
-nano /etc/kernel/cmdline
+# 例: root=... ro quiet amd_iommu=on iommu=pt video=efifb:off
 proxmox-boot-tool refresh
 reboot
 ```
 
-> *pcie\_acs\_override* は不要な環境もあります。IOMMU グループが分離されない場合のみ有効化。
-
-### 10-2. VFIO バインド
+2. **IOMMU確認**
 
 ```bash
-# デバイス ID を確認（例：GPU と HDMI Audio）
-lspci -nn | grep -i 'vga\|audio'
-# 例: 10de:xxxx（GPU）, 10de:yyyy（Audio）
+dmesg | grep -e DMAR -e IOMMU -e AMD-Vi
+```
 
-cat >/etc/modprobe.d/vfio.conf <<EOF
-options vfio-pci ids=10de:xxxx,10de:yyyy disable_vga=1
-EOF
+3. **デバイス確認とVFIOバインド**
 
-# ブラックリスト（必要時）
-cat >/etc/modprobe.d/blacklist-nvidia.conf <<'EOF'
-blacklist nvidia
-blacklist nouveau
-EOF
+```bash
+lspci -nn | grep -E "VGA|Audio"
+# 例: 0000:0a:00.0 VGA [10de:2504] / 0000:0a:00.1 Audio [10de:228e]
+# → 上記2つを vfio-pci にバインド
+```
 
-update-initramfs -u -k all
+GUI: `Datacenter > Node > PCI Devices` から対象GPU/Audioを **VFIO-PCI** に割当（あるいは `/etc/modprobe.d/vfio.conf` に `options vfio-pci ids=10de:2504,10de:228e`）。
+
+### 7.2 編集VMの作成（例: VMID=100, Name=edit-win）
+
+* **OS**: Windows 11 ISO / UEFI (OVMF), Q35
+* **System**: Q35, VirtIO SCSI single, **Qemu Agent=ON**, **NUMA=ON**, CPU type=host
+* **Disk**: OS 150GB（nvme\_fast/vmdata）, IOThread=ON, SSD, Discard
+* **追加ディスク（直付け）**:
+
+  * **素材**: `nvme_media/media_zvol` を **Add > Hard Disk** で割当（SCSI, IOThread=ON）
+  * **キャッシュ**: `nvme_fast/cache_zvol` を **Add > Hard Disk** で割当（SCSI, IOThread=ON）
+* **CPU**: 10 vCPU
+* **Memory**: 36–40GB（Balloon ON）
+* **NIC**: VirtIO
+* **PCI Passthrough**:
+
+  * **Add > PCI Device** で GPU本体 `0000:..:..0` と **Audio関数** `0000:..:..1` の **2つ**を追加
+  * `All Functions`/`ROM-Bar` 有効、`PCI-Express` 有効
+
+### 7.3 Windows 初回セットアップ
+
+1. VirtIO ドライバ（ネット/balloon/ストレージ）導入
+2. **NVIDIAドライバ** を通常通りインストール（再起動）
+3. **ディスクの初期化**（素材/キャッシュ用）→ NTFS（**64K クラスタ**）で D: / E: などに割当
+
+> **うまく映らない/Code 43**: BIOSの iGPU/Primary Display、IOMMU/4G Decoding/CSM 設定を再確認。`video=efifb:off` を付与済みか確認。
+
+---
+
+## 8. Parsec と NLE（Premiere/DaVinci）最適化
+
+### 8.1 Parsec（編集VM＝ホスト側）
+
+* **Codec**: H.265、**FPS**: 60、**帯域**: 40–70Mbps から調整
+* **VSync**: Off、**先読み**: 中、**デコーダ**: クライアントGPU
+* 作業時は可能なら **1080p** に落として操作（最終書き出しはフル解像度）
+
+### 8.2 Premiere/DaVinci
+
+* **メディアキャッシュ/スクラッチ**: \*\*キャッシュ用ZVOL（E:）\*\*に固定
+* **プロキシ**: 自動生成（ProRes Proxy / CineForm）
+* **再生解像度**: 1/2〜1/4、**レンダラー**: CUDA/GPU
+* 大量素材は **フォルダ分割**し、初回プレビュー生成を段階的に
+
+---
+
+## 9. ECC 有効化の確認
+
+```bash
+apt update && apt install -y edac-utils
+lsmod | grep edac
+edac-util -v          # CE/UE のカウンタ表示
+sudo dmesg | grep -i -E "ecc|edac"
+dmidecode -t memory | grep -i -E "error|ecc"
+```
+
+* Proxmox で **EDACがメモリコントローラを認識**していればOK。
+* DDR5の **On-Die ECC** は別概念（チップ内）。本構成は **システムECC + On-Die** の両方を満たす想定。
+
+---
+
+## 10. ZFS スナップショットとロールバック
+
+### 10.1 OS（rpool）
+
+```bash
+# 変更前にスナップショット
+zfs snapshot rpool/ROOT/pve-1@pre-change
+zfs list -t snapshot
+# ロールバック（レスキュー/メンテナンスモード推奨）
+systemctl isolate rescue.target
+zfs rollback -r rpool/ROOT/pve-1@pre-change
 reboot
 ```
 
-### 10-3. VM への割り当て
-
-* VM 設定 → **Add → PCI Device** で GPU 本体と Audio 関連を **両方** 追加
-* オプション：`Primary GPU` チェック *オフ*（基本は仮想ディスプレイ併用 → RDP/Parsec で入る）
-* Windows で GeForce ドライバ導入 → 再起動
-
-> エラーが出る場合：CSM 無効、4G/REBAR 有効、IOMMU グループ再確認、ROM ファイル指定（必要時）などを確認。
-
----
-
-## 11. バックアップ（vzdump）
-
-* Web UI → **Datacenter → Backup** で **`tank-backups` へ週次**スケジュール
-
-  * Mode: Snapshot / Compression: `zstd` / Prune: `keep-last=3, keep-weekly=4, keep-monthly=3`
-* リストア手順の確認（年 1 回は DR リハーサルを推奨）
-
----
-
-## 12. 運用チューニング/メンテ
-
-* **ZFS スクラブ**：週次（前述の cron）
-* **SMART テスト**：月次短時間テスト
-
-  ```bash
-  smartctl -t short /dev/sdX
-  smartctl -a /dev/sdX | less
-  ```
-* **ログローテ/不要サービス停止**：`journalctl --vacuum-time=14d` など
-* **アップデート**：月 1 回 `apt update && apt full-upgrade`（スナップショット取得後）
-
----
-
-## 13. 参考の vCPU/メモリ割り当て（同時運用）
-
-* **初期 32GB のとき**
-
-  * Dev Win: 4 vCPU / 8–10GB
-  * Edit Win: 8–10 vCPU / 16–24GB
-  * K8s：必要時のみ（2GB×数台は厳しい）
-* **64GB へ増設後**（推奨）
-
-  * Dev Win: 6 vCPU / 12GB
-  * Edit Win: 10 vCPU / 24–32GB
-  * RKE2: 2 vCPU / 2GB ×6（合計 12GB + α）
-  * 残りはホスト & ARC に回す
-
----
-
-## 14. よくあるつまずき
-
-* **インストール ISO が見えない/起動しない**：CSM を無効、UEFI Only、Secure Boot は OVMF/TPM と併用
-* **Windows でディスクが見えない**：virtio SCSI ドライバを読み込む
-* **GPU パススルーでブラックスクリーン**：`video=efifb:off` 入れ忘れ、ROM 指定、Primary GPU の扱い確認
-* **RKE2 が Join しない**：`/etc/rancher/rke2/config.yaml` の server URL と FW、swap 無効化を確認
-
----
-
-## 15. 変更履歴（本 README への主な修正）
-
-* BIOS～GPU パススルーまでを **ワンストップ手順**として整理
-* ZFS の \*\*データセット設計（rpool/proxy / tank/photos）\*\*を明確化
-* **Samba 共有**で Windows から写真/プロキシを扱う実手順を追加
-* **Nested Virtualization**（WSL2）と **Hyper-V フラグ**の具体手順を追加
-* **バックアップ/スクラブ/SMART**など運用タスクの定例化
-
----
-
-## 付録 A：チートシート
+### 10.2 VM ディスク/データセット
 
 ```bash
-# ZFS 使用量
-zfs list -o name,used,avail,compressratio
-
-# IOMMU グループ確認
-find /sys/kernel/iommu_groups/ -type l
-
-# Proxmox ストレージ一覧
-pvesm status
-
-# VM の live 移動（同一ホスト内でディスクの移動）
-qm move_disk <VMID> scsi0 tank-backups:images/<VMID>/vm-<VMID>-disk-0.raw
+# 例: 編集素材zvol のスナップショット
+zfs snapshot nvme_media/media_zvol@before-import
+# 削除
+zfs destroy nvme_media/media_zvol@before-import
 ```
 
 ---
 
-## 付録 B：推奨フォルダ構成（Windows 編集 VM）
+## 11. バックアップ（簡易運用）
 
-* `Z:\Projects\<ProjectName>\` … プロジェクト/プロキシ（`rpool/proxy`）
-* `Y:\Photos\` … 参照用の素材（`tank/photos`）
+### 11.1 VM バックアップ（vzdump）
 
-> プロジェクト終了後は **プロキシを削除**し、写真・完成品のみ長期保管（`tank`）。
+* USB HDD などを `/mnt/backup` にマウント → `Datacenter > Storage > Directory` で登録
+* スケジュール: `Datacenter > Backup` で **週1** など
+* 手動例:
+
+```bash
+vzdump 100 200 \
+  --mode stop --compress zstd --storage backup \
+  --notes "weekly backup"
+```
+
+### 11.2 データ（素材/キャッシュ）
+
+* 素材は別HDD/NASへ **定期rsync**。キャッシュは復元不要なため除外可。
 
 ---
 
-以上。実際のリポジトリ構成に合わせてセクション名やコマンドブロックを微調整してください。必要なら “最小構成のファイルサーバ VM” 方式（Samba をホストではなく VM/LXC で動かす）版も追補できます。
+## 12. リソース割り当てと“カクつき”防止
+
+* **編集VM**: 10 vCPU / 36–40GB RAM（Balloon ON）
+* **開発VM**: 6 vCPU / 20–24GB RAM（Balloon ON）
+* **Proxmoxホスト**: 4–6GB 残す
+* **CPU Units**: 編集VM=1024、開発VM=512（編集を優先）
+* **ディスク**: VirtIO-SCSI Single、**IOThread=ON**、**Write Back**（UPS が望ましい）
+* **NIC**: VirtIO、クライアントは **有線1GbE**
+
+---
+
+## 13. 将来拡張（128GB/K8s/RKE2）
+
+* **RAM 128GB**（32GB×4）へ：編集＋K8s×6台の並行運用が安定
+* RKE2学習クラスタ（Ubuntu最小6台）
+
+  * VMあたり: 2 vCPU / 4GB / 20GB Disk 目安
+  * etcd/コントロールプレーンは別VMに（実運用学習の場合）
+
+---
+
+## 14. トラブルシューティング
+
+**GPUが映らない/Code 43**
+
+* BIOSの iGPU優先 / 4G Decoding / Re-Size BAR / CSM 無効 を再確認
+* `amd_iommu=on iommu=pt video=efifb:off` の適用（`proxmox-boot-tool refresh`）
+* GPUとAudioの **両方**をパススルー、`All Functions` 有効
+
+**Parsecがカクつく**
+
+* H.265 / 60fps / 40–70Mbps / クライアントデコード / 1080p作業
+* ルータ/スイッチ間のQoSや混雑を確認（**全て有線**）
+
+**素材一覧が遅い**
+
+* プロキシ生成、フォルダ分割、キャッシュを専用ZVOLに固定
+
+**ZFSが遅い**
+
+* `atime=off`、`compression=lz4（キャッシュはoff）`、`volblocksize=64K` を確認
+* `sync=standard`（UPSがあれば `write back` 運用との整合性に留意）
+
+---
+
+## 15. 付録：よく使うコマンド集
+
+```bash
+# ディスク・プール確認
+lsblk -o NAME,SIZE,MODEL
+zpool status
+zfs list -o name,used,avail,compression,volblocksize
+
+# ZVOL作成例（素材900G / キャッシュ500G）
+zfs create -V 900G -o volblocksize=64K -o compression=lz4 -o atime=off nvme_media/media_zvol
+zfs create -V 500G -o volblocksize=64K -o compression=off -o atime=off nvme_fast/cache_zvol
+
+# スナップショット
+zfs snapshot nvme_media/media_zvol@pre
+zfs list -t snapshot
+zfs destroy nvme_media/media_zvol@pre
+
+# ECC確認
+apt install -y edac-utils
+edac-util -v
+sudo dmesg | grep -i -E "ecc|edac"
+
+# バックアップ（手動）
+vzdump 100 --mode stop --compress zstd --storage backup
+```
+
+---
+
+### ライセンス
+
+MIT（必要に応じて変更してください）
+
+### メモ
+
+* まずは **現状の64GBで運用開始** → 体感に応じて **キャッシュZVOLの増量**と **RAM 128GB** へ拡張。
+* データは**こまめにバックアップ**（NVMe単発プールは冗長性がありません）。
