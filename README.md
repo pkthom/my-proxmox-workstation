@@ -28,7 +28,7 @@
 
 ## 1. 想定ハード構成
 
-* **CPU**: AMD Ryzen 7 7700（iGPU 付き / 付属Wraith Prism使用）
+* **CPU**: AMD Ryzen 9 7900（iGPU 付き / 付属Wraith Prism使用）
 * **MB**: ASUS TUF GAMING B650-PLUS WIFI
 * **RAM**: Kingston Server Premier ECC UDIMM DDR5-4800 32GB ×2 = **64GB**
 * **SATA SSD**: Crucial MX500 250GB ×2 → **ZFSミラー（OS用）**
@@ -115,6 +115,20 @@ lsblk -o NAME,SIZE,MODEL
 # プール作成
 zpool create -f -o ashift=12 nvme_media /dev/nvme0n1
 zpool create -f -o ashift=12 nvme_fast  /dev/nvme1n1
+```
+### ※ ZFSにおける ashift=12 の意義について
+
+現在流通しているほとんどのSSDやHDDは、データの書き込みを効率的に行うため、内部的に**4K（4096バイト）**の物理セクターを採用している。
+ZFSでは、プールを作成する際にこの物理セクターサイズを正しく認識させることが、ストレージの性能と寿命を最大限に引き出す上で非常に重要となる。
+`ashift=12` というオプションは、ZFSがこの4Kセクターを適切に認識し、4K単位でデータを読み書きするための設定。
+
+この設定により、以下の利点がもたらされます。
+- SSDの寿命延長: ストレージの物理的なブロックサイズとZFSの書き込み単位が一致するため、無駄な書き換え作業（ライトアンプリフィケーション）が抑制されます。これにより、SSDへの書き込み回数が減り、製品の寿命を延ばすことが期待できます。
+- パフォーマンスの最適化: データの入出力（I/O）が効率的に行われるようになり、ZFS全体のパフォーマンスが向上します。
+
+以下で確認可能
+```
+zpool get all pool_name
 ```
 
 ### 4.2 ZVOL 作成（素材/キャッシュ）
