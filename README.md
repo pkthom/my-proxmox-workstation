@@ -95,6 +95,27 @@
 
 > **初期ログイン**: https\://\<Proxmox管理IP>:8006 へブラウザからアクセス
 
+5. リポジトリ アップデート
+```
+# 推奨: コミュニティ（no-subscription）リポジトリへ切替
+sed -i 's/enterprise/no-subscription/' /etc/apt/sources.list.d/pve-enterprise.list || true
+cat >/etc/apt/sources.list.d/pve-no-subscription.list <<'EOF'
+deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription
+EOF
+apt update && apt -y full-upgrade
+reboot
+```
+
+6. ZFS ARCを控えめに
+```
+# 例: 上限 10GiB（64GB RAM の場合）
+cat >/etc/modprobe.d/zfs-arc.conf <<'EOF'
+options zfs zfs_arc_max=10737418240
+EOF
+update-initramfs -u
+reboot
+```
+
 ---
 
 ## 4. NVMeプールとZVOLの作成
@@ -252,13 +273,28 @@ Proxmox GUI → `Datacenter > Storage > Add > ZFS` で `pool_fast`（or `pool_fa
 
 ### 7.1 カーネルパラメータとVFIO
 
-1. **カーネルコマンドライン**
+1. **ブート方式の判定（ここが分岐ポイント）**
+```
+proxmox-boot-tool status
+```
+- 出力に systemd-boot と出る → A を実施（PVE8 の既定・UEFI）
+- GRUB を使っている → B を実施（旧環境/レガシー）
 
-```bash
-# 既存内容に追記（amd_iommu=on iommu=pt video=efifb:off）
-cat /etc/kernel/cmdline
-# 例: root=... ro quiet amd_iommu=on iommu=pt video=efifb:off
+A. systemd-boot（PVE8 既定・UEFI）
+
+既存文字列を消さずに 末尾へ追記 します（重複させない）
+```
+sed -i 's/$/ amd_iommu=on iommu=pt/' /etc/kernel/cmdline
 proxmox-boot-tool refresh
+reboot
+```
+
+B. GRUB（旧環境/レガシー）
+
+既存値の先頭へ追記します（重複させない）
+```
+sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="/&amd_iommu=on iommu=pt /' /etc/default/grub
+update-grub # または grub-mkconfig -o /boot/grub/grub.cfg
 reboot
 ```
 
@@ -266,14 +302,47 @@ reboot
 
 ```bash
 dmesg | grep -e DMAR -e IOMMU -e AMD-Vi
+or
+dmesg | grep -E 'IOMMU|AMD-Vi'
 ```
 
-3. **デバイス確認とVFIOバインド**
+3. **vfio モジュール & 3060 の VFIO バインド（共通）**
 
 ```bash
+# vfio モジュール
+cat >>/etc/modules <<'EOF'
+vfio
+vfio_iommu_type1
+vfio_pci
+vfio_virqfd
+EOF
+
+
+# 3060 のデバイス ID を確認（例: 10de:2488, 10de:228b）
 lspci -nn | grep -E "VGA|Audio"
-# 例: 0000:0a:00.0 VGA [10de:2504] / 0000:0a:00.1 Audio [10de:228e]
-# → 上記2つを vfio-pci にバインド
+
+
+# VFIO にバインド
+cat >/etc/modprobe.d/vfio.conf <<'EOF'
+options vfio-pci ids=10de:2488,10de:228b
+EOF
+
+
+# 任意（nouveau を無効化）
+cat >/etc/modprobe.d/blacklist-nouveau.conf <<'EOF'
+blacklist nouveau
+options nouveau modeset=0
+EOF
+
+
+update-initramfs -u
+reboot
+```
+
+4. **バインド確認(共通)**
+```
+lspci -k | grep -A3 -E '10de:|NVIDIA|VGA'
+# → Kernel driver in use: vfio-pci であれば OK
 ```
 
 GUI: `Datacenter > Node > PCI Devices` から対象GPU/Audioを **VFIO-PCI** に割当（あるいは `/etc/modprobe.d/vfio.conf` に `options vfio-pci ids=10de:2504,10de:228e`）。
