@@ -87,7 +87,11 @@
 3. **ファイルシステム**: `ZFS (RAID1)` を選択
 
    * オプションで `ashift=12`（SSD最適）
+   * オプションで `Compression=zstd`*
 4. 管理ネットワーク（vmbr0）/ホスト名/時刻を設定 → インストール完了
+
+※ ProxmoxのZFSミラー構成において、zstd圧縮が推奨されるのは、高速でありながら高い圧縮率を持つためです。\
+これにより、ディスク容量を節約しつつ、パフォーマンス向上とSSDの寿命延長という複数のメリットを得られます。
 
 > **初期ログイン**: https\://\<Proxmox管理IP>:8006 へブラウザからアクセス
 
@@ -100,21 +104,38 @@
 * NVMe#1 → `nvme_media`（編集素材用 zvol を作る）
 * NVMe#2 → `nvme_fast`（キャッシュ用 zvol + 開発VM用のZFSストレージ）
 
+```
+[Client PCs over LAN]
+├─ (A) 古いLenovo → RDP → 開発VM (Windows)
+└─ (B) 古いMacBook Pro → Parsec → 編集VM (Windows, RTX3060)
+
+
+[Proxmox Host]
+├─ rpool (ZFS mirror on SATA SSD 250GB x2) ← OS/boot, snapshots
+├─ pool_media (NVMe #1 1TB, single)        ← ZVOL: media_zvol (D:)
+└─ pool_fast (NVMe #2 1TB, single)
+       ├─ ZVOL: cache_zvol 500G (E:)
+       └─ DATASET: pool_fast/vmdata (残り ~500G, Proxmox ストレージ)
+```
+
+
 ### 4.1 プール作成（GUI推奨）
 
 * `Node` → 該当ノード → `Disks` → `ZFS` → `Create: ZFS` で個別に作成
 
-  * `name=nvme_media`, `ashift=12`, デバイス=`/dev/nvme0n1`
-  * `name=nvme_fast`,  `ashift=12`, デバイス=`/dev/nvme1n1`
+  * `name=nvme_media`, `ashift=12`, デバイス=`/dev/disk/by-id/nvme-XXXX`
+  * `name=nvme_fast`,  `ashift=12`, デバイス=`/dev/disk/by-id/nvme-YYYY`
 
 > CLI派は下記（**デバイス名は必ず確認**）
 
 ```bash
 # 例: 実デバイス確認
-lsblk -o NAME,SIZE,MODEL
+lsblk -o NAME,MODEL,SIZE,TYPE,MOUNTPOINT
+ls -l /dev/disk/by-id/ | grep nvme
+
 # プール作成
-zpool create -f -o ashift=12 nvme_media /dev/nvme0n1
-zpool create -f -o ashift=12 nvme_fast  /dev/nvme1n1
+zpool create -f -o ashift=12 pool_media /dev/disk/by-id/nvme-XXXX
+zpool create -f -o ashift=12 pool_fast  /dev/disk/by-id/nvme-YYYY
 ```
 ### ※ ZFSにおける ashift=12 の意義について
 
@@ -136,22 +157,64 @@ zpool get all pool_name
 **素材（メディア）用 ZVOL**（約 900GB）
 
 ```bash
-zfs create -V 900G -o volblocksize=64K -o compression=lz4 -o atime=off -o logbias=throughput nvme_media/media_zvol
+zfs create -V 900G -o volblocksize=128K -o compression=lz4 -o atime=off -o logbias=throughput pool_media/media_zvol
 ```
+
+- `volblocksize=128K` について
+
+理由: 動画編集の素材ファイルは、数MBからGB単位の大きなデータがまとまっており、小さな単位で読み書きすると効率が悪くなります。\
+128Kは、一般的なOSのブロックサイズである64Kより大きく、この種の大きなファイルの読み書きに最適化されています。
+
+他の選択肢ではない理由: これより小さなvolblocksizeを選ぶと、大きなファイルの読み書き回数が増え、パフォーマンスが低下する可能性があります。\
+逆に大きすぎると、小さなファイルを扱う際に領域の無駄が生じるため、動画編集用途では128Kがバランスの良い値とされています。
+
+- `compression=lz4` について
+  
+理由: lz4は、ZFSで最も高速な圧縮アルゴリズムです。動画ファイルは、すでにMP4などの形式で高度に圧縮されていることがほとんどで、再圧縮しても容量はほとんど減りません。
+そのため、容量削減よりも圧縮・展開の速度を最優先し、編集作業中のタイムラグを最小限に抑えることを目的としています。
+
+他の選択肢ではない理由: zstdは圧縮率が高いですが、lz4よりわずかに遅く、CPUへの負荷も高くなります。\
+動画編集では数GB単位のデータを扱うため、このわずかな差が体感的な速度に影響する可能性があります。
 
 **キャッシュ用 ZVOL**（500GB）
 
 ```bash
-zfs create -V 500G -o volblocksize=64K -o compression=off -o atime=off -o logbias=throughput nvme_fast/cache_zvol
+zfs create -V 500G -o volblocksize=64K -o compression=off -o atime=off -o logbias=throughput pool_fast/cache_zvol
 ```
+
+- `volblocksize=64K` について
+
+理由: キャッシュには、動画の一時的なプレビューデータ、レンダリングデータ、プロジェクトのメタデータなど、様々なサイズのデータが混在します。\
+128Kのような大きなブロックサイズに最適化するよりも、64Kというより一般的なサイズにすることで、多様なデータに柔軟に対応し、バランスの取れた性能を確保します。
+
+他の選択肢ではない理由: 32Kなど小さすぎると、大きなデータの読み書きが非効率になります。動画編集のキャッシュは主に大きなデータを扱うため、64Kが適しています。
+
+- `compression=off` について
+
+理由: キャッシュは一時的なデータを高速に読み書きするためのもので、容量を節約することよりも、最高速のパフォーマンスを確保することが最優先されます。\
+圧縮処理にはわずかでもCPUリソースと時間が必要なため、この処理を完全に無効化することで、キャッシュへの書き込み速度を最大限に高めます。
+
+他の選択肢ではない理由: lz4やzstdを有効にすると、データ圧縮のためにわずかな処理時間が加算されます。\
+これは、キャッシュの目的である「瞬時の読み書き」と相反するため、この用途では圧縮をオフにするのがベストプラクティスです。
 
 **開発VM 用ストレージ**（ZFS データセット）
 
 ```bash
-zfs create -o compression=lz4 -o atime=off nvme_fast/vmdata
+zfs create -o compression=lz4 -o atime=off -o mountpoint=/pool_fast/vmdata pool_fast/vmdata
 ```
 
-Proxmox GUI → `Datacenter > Storage > Add > ZFS` で `nvme_fast`（or `nvme_fast/vmdata`）を **VMディスク格納先**として追加。
+lz4の理由：lz4は、zstdに比べて圧縮率は劣りますが、圧倒的に速く、CPUへの負荷も最小限です。これらの特性は、頻繁なI/Oが発生する開発環境のVMと非常に相性が良いです。
+開発VMのデータセットには、容量の節約よりも速度とレスポンスが重要です。そのため、最高速のlz4圧縮を選ぶのが最善の選択と言えます。
+
+zstdでない理由：zstdは高い圧縮率を持つ一方で、lz4よりわずかに遅く、CPUリソースを消費します。開発環境のように常にI/Oが発生し、最高速が求められる用途では、このわずかな遅延が体感的なパフォーマンス低下につながる可能性があります。
+
+atime=off: ファイルのアクセス時間を記録する機能をオフにします。これにより、無駄な書き込みが減り、SSDの寿命を延ばす効果があります。
+
+
+
+Proxmox GUI → `Datacenter > Storage > Add > ZFS` で `pool_fast`（or `pool_fast/vmdata`）を **Directory ストレージ**として追加。
+
+
 
 > **補足**: キャッシュ容量は将来 **1TB**へ拡張推奨（複数プロジェクトでも詰まりにくくなります）。
 
