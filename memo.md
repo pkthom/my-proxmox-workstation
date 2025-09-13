@@ -1,4 +1,6 @@
 
+http://proxmox.com/en/downloads/proxmox-virtual-environment/iso
+
 https://pve.proxmox.com/wiki/Prepare_Installation_Media
 
 https://pve.proxmox.com/wiki/Prepare_Installation_Media?utm_source=chatgpt.com#_instructions_for_macos
