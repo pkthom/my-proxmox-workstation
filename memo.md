@@ -1,6 +1,8 @@
 
 http://proxmox.com/en/downloads/proxmox-virtual-environment/iso
 
+https://enterprise.proxmox.com/iso/proxmox-ve_9.0-1.iso
+
 https://pve.proxmox.com/wiki/Prepare_Installation_Media
 
 https://pve.proxmox.com/wiki/Prepare_Installation_Media#_instructions_for_macos
