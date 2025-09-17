@@ -7,8 +7,6 @@ https://pve.proxmox.com/wiki/Prepare_Installation_Media
 
 https://pve.proxmox.com/wiki/Prepare_Installation_Media#_instructions_for_macos
 ```
-pkthom@MacBook-Pro ~ % hdiutil convert Downloads/proxmox-ve_9.0-1.iso -format UDRW -o
-pkthom@MacBook-Pro ~ % cd Downloads
 pkthom@MacBook-Pro Downloads % hdiutil convert proxmox-ve_9.0-1.iso -format UDRW -o proxmox-ve_9.0-1.dmg
 Reading Driver Descriptor Map (DDM : 0)…
 Reading PVE                              (Apple_ISO : 1)…
