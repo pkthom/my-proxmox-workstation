@@ -89,6 +89,11 @@ Q-LEDが緑になった
 
 <img width="682" height="872" alt="image" src="https://github.com/user-attachments/assets/b6dcb66d-08e0-466b-9997-baeb9b60a6a6" />
 
+SSDをケース側面に固定するマウンタが手に入らないため、ガムテで固定する
+
+<img width="500" height="579" alt="image" src="https://github.com/user-attachments/assets/8438f41d-78ac-4180-a7bb-98c3925f490a" />
+
+
 UEFI BIOSが出た
 
 <img width="1121" height="510" alt="image" src="https://github.com/user-attachments/assets/34c99252-a4a7-4d64-b940-6e66ae68c811" />
@@ -119,58 +124,58 @@ UEFI BIOSが出た
 
 # 1) BIOS設定（いまここ）
 
-* **Primary Display / Integrated Graphics**：内蔵iGPUを**優先**　
+### Primary Display / Integrated Graphics**：内蔵iGPUを優先　
 
 Advanced -> NB Configuration -> Primary Video Device : IGFX Video (デフォルトはPCIE Video)
 
 <img width="1246" height="657" alt="image" src="https://github.com/user-attachments/assets/c1e6111a-4c55-4102-88a7-574487be5e9b" />
 
 
-* **CSM**：Disabled（UEFIオンリー）
+### CSM：Disabled（UEFIオンリー）
 
 Boot -> CSM(Compatibility Support Module) -> Launch CSM : Disabled (最初からこう)
 
 <img width="789" height="348" alt="image" src="https://github.com/user-attachments/assets/89455353-55f5-48ba-981e-6c9050bb4a69" />
 
   
-* **SVM (AMD-V)**：Enabled
+### SVM (AMD-V)：Enabled
 
 Advanced -> CPU Configuration -> SVM Mode : Enabled (最初からこう)
 
 <img width="787" height="336" alt="image" src="https://github.com/user-attachments/assets/d93338bb-c6a5-4099-9cda-336824580cbc" />
 
 
-* **IOMMU**（AMD IOMMU / SVIOMMU）：Enabled
+### IOMMU（AMD IOMMU / SVIOMMU）：Enabled
 
 Advanced -> AMD CBS -> IOMMU : Enabled (最初はAuto)
 
 <img width="792" height="418" alt="image" src="https://github.com/user-attachments/assets/1ef45450-1858-4b67-9f2b-7f2b3109ecd4" />
 
 
-* **Above 4G Decoding**：Enabled
+### Above 4G Decoding：Enabled
 
 Advanced -> PCI Subsystem Settings -> Above 4G Decoding : Enabled (最初からこう)
 
 <img width="792" height="408" alt="image" src="https://github.com/user-attachments/assets/7ac2a3ca-4b56-47eb-8e61-d57ca0420d42" />
 
 
-* **Re-Size BAR**：Enabled
+### Re-Size BAR：Enabled
 
 Advanced -> PCI Subsystem Settings -> Resize BAR Support : Enabled (最初からこう)
 
 上画像に写っている
 
-* **SATA Mode**：AHCI
+### SATA Mode：AHCI
 
 Advanced -> SATA Configuration -> SATA Mode : AHCI (最初からこう)
 
 <img width="1240" height="590" alt="image" src="https://github.com/user-attachments/assets/de3129c1-dc9a-4611-99fd-e7bb668eed45" />
 
   
-* **Boot**：USBインストーラを最優先（UEFIの方）
-* メモリはEXPO/XMPを有効（安定しない場合はAutoに戻す）
+### メモリはEXPO/XMPを有効（安定しない場合はAutoに戻す）-> ⚠️これ無理だったため、今はDisabledにしている
 
 EXPO : Enabled -> これすると、Q ~LEDが黄色(DRAM)で進まなくなった　
+
 以下でBIOS初期化して治った 
 ```
 完全放電手順
@@ -181,17 +186,25 @@ CMOSクリア手順（EXPOをリセット）
 ・マザボ上の CLRTC（Clear CMOS）ピン をドライバー等で 5〜10秒ショート
 ```
 
+### Legacy USB Support & XHCI Hand-off : Enabled
+
 Advanced -> USB Configuration -> Legacy USB Support & XHCI Hand-off : Enabled (最初からこう)
+
+<img width="791" height="431" alt="image" src="https://github.com/user-attachments/assets/38dbd2af-18a6-4e95-9280-451981dd7b4a" />
+
+### Secure Boot : Disable
 
 Boot -> Secure Boot -> OS Type : Other OS (最初からこう)
 
-<img width="791" height="431" alt="image" src="https://github.com/user-attachments/assets/38dbd2af-18a6-4e95-9280-451981dd7b4a" />
+写真撮り忘れた
+
+### Fast Boot : Disable
 
 Boot -> Boot Configuration -> Fast Boot : Disabled　(最初はEnabled)
 
 写真撮り忘れた
 
-保存してUSBから起動。
+### 変更を保存してUSBから起動
 
 Boot -> 一番下のUSB（UEFI:BUFFALO USB Flash Disk...）をクリック -> 
 
@@ -203,6 +216,48 @@ Boot -> 一番下のUSB（UEFI:BUFFALO USB Flash Disk...）をクリック ->
 
 再起動の後なぜか再度BIOSが表示されたため、再度「Save & Exit(F10)」で再起動 -> Proxmoxが起動した
 
+### Proxmox起動
+
+「Install Proxmox VE (Graphical)」を選択
+
+<img width="1060" height="588" alt="image" src="https://github.com/user-attachments/assets/95ab480a-a8dc-40ef-b1e5-a6232182f691" />
+
+### 規約に同意する
+
+I agree をクリック
+
+<img width="792" height="467" alt="image" src="https://github.com/user-attachments/assets/023a744e-9cfb-4253-bb60-83c3649f884e" />
+
+### どこにOSをインストールするか　を選ぶ -> ZFSでSSD SATA 250GB × 2枚でRAID1(ミラー)を組む
+
+<img width="597" height="789" alt="image" src="https://github.com/user-attachments/assets/5bf97661-797c-4ac7-9472-12c0d5a7ebed" />
+
+<img width="596" height="794" alt="image" src="https://github.com/user-attachments/assets/ffb67925-125c-42d9-a6e9-54fc8af65d9a" />
+
+### 国、タイムゾーン、キーボードレイアウトを選ぶ
+
+<img width="496" height="292" alt="image" src="https://github.com/user-attachments/assets/06f1bc06-f7b7-4343-a709-c41b42acf93c" />
+
+### rootパスワード & メールアドレスを入力
+
+### NIC、ホスト名、IP、GW、DNSサーバー　を入力
+
+<img width="328" height="162" alt="image" src="https://github.com/user-attachments/assets/4b489509-d502-437d-a892-5bbfb72eb877" />
+
+### 確認画面
+
+-> 確認して、OK -> インストール始まる
+
+<img width="496" height="643" alt="image" src="https://github.com/user-attachments/assets/a73774a4-f2c4-4cf0-95ac-1cd0849afcec" />
+
+
+### コンソールにアクセス
+
+インストールが終わると、設定したパスワードでCLIからログインできる
+
+<img width="488" height="307" alt="image" src="https://github.com/user-attachments/assets/92912dca-6354-4ee2-aef9-99106599902c" />
+
+マシンとルーターをLANケーブルで繋いだら、設定したIP(192.168.11.10)にpingが通るようになり、https://192.168.11.10:8006/ でコンソールにアクセスできる
 
 ---
 
