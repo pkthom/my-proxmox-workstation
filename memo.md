@@ -3,6 +3,27 @@
 [ISO置き場](http://proxmox.com/en/downloads/proxmox-virtual-environment/iso)から、
 [最新版](https://enterprise.proxmox.com/iso/proxmox-ve_9.0-1.iso)をダウンロード
 
+<img width="1408" height="411" alt="image" src="https://github.com/user-attachments/assets/33525586-65ef-490a-9525-d0c08fc449c0" />
+
+
+念のためハッシュを確認
+```
+pkthom@MacBook-Pro Downloads % shasum -a 256 proxmox-ve_9.0-1.iso
+228f948ae696f2448460443f4b619157cab78ee69802acc0d06761ebd4f51c3e  proxmox-ve_9.0-1.iso
+```
+
+[https://github.com/balena-io/etcher/releases/download/v2.1.4/balenaEtcher-2.1.4-x64.dmg](こちら)からEtcherをダウンロード
+
+ダウンロードしたProxmoxISO、使用予定のUSBを選択し、「Flash!」をクリック
+
+<img width="818" height="499" alt="Screen Shot 2025-09-20 at 3 36 44 PM" src="https://github.com/user-attachments/assets/99aadfaa-bf02-45c5-99a6-38ab1fb2e6de" />
+
+インストーラー作成完了　自作PCに差しておく
+
+<img width="819" height="497" alt="Screen Shot 2025-09-20 at 3 39 26 PM" src="https://github.com/user-attachments/assets/8342d186-c0b1-4da8-bdbf-25e0cba55aff" />
+
+<details><summary>この方法でもいけるかもしれないが、結局試していない</summary>
+   
 [公式 インストールメディアの作り方](https://pve.proxmox.com/wiki/Prepare_Installation_Media)の中の、
 [MacOS版](https://pve.proxmox.com/wiki/Prepare_Installation_Media#_instructions_for_macos)を参照
 
@@ -60,9 +81,26 @@ Disk /dev/disk2 ejected
 pkthom@MacBook-Pro Downloads %
 ```
 
+</details>
 
-了解。下の順番で“いまBIOSが開いているところから”ゴール（3つのVM稼働＋共有と自動運用）まで一気に行きます。
-（コマンドはそのままコピペでOK。`<>`はあなたの環境で置換してください）
+# 0) パーツを組み立てる
+
+Q-LEDが緑になった
+
+<img width="682" height="872" alt="image" src="https://github.com/user-attachments/assets/b6dcb66d-08e0-466b-9997-baeb9b60a6a6" />
+
+UEFI BIOSが出た
+
+<img width="1121" height="510" alt="image" src="https://github.com/user-attachments/assets/34c99252-a4a7-4d64-b940-6e66ae68c811" />
+
+全てのディスクと、USBが読み込めている
+
+<img width="792" height="592" alt="image" src="https://github.com/user-attachments/assets/a4d3db85-1998-42af-983b-a82b22cf6b68" />
+
+<img width="790" height="589" alt="image" src="https://github.com/user-attachments/assets/5d3a2532-8625-4279-8031-d1e58ac695cb" />
+
+<img width="648" height="579" alt="image" src="https://github.com/user-attachments/assets/922f7c5f-4712-4edb-8a60-3581d8e54f2a" />
+
 
 ---
 
@@ -85,51 +123,86 @@ pkthom@MacBook-Pro Downloads %
 
 Advanced -> NB Configuration -> Primary Video Device : IGFX Video (デフォルトはPCIE Video)
 
+<img width="1246" height="657" alt="image" src="https://github.com/user-attachments/assets/c1e6111a-4c55-4102-88a7-574487be5e9b" />
+
+
 * **CSM**：Disabled（UEFIオンリー）
 
 Boot -> CSM(Compatibility Support Module) -> Launch CSM : Disabled (最初からこう)
+
+<img width="789" height="348" alt="image" src="https://github.com/user-attachments/assets/89455353-55f5-48ba-981e-6c9050bb4a69" />
+
   
 * **SVM (AMD-V)**：Enabled
 
 Advanced -> CPU Configuration -> SVM Mode : Enabled (最初からこう)
 
+<img width="787" height="336" alt="image" src="https://github.com/user-attachments/assets/d93338bb-c6a5-4099-9cda-336824580cbc" />
+
+
 * **IOMMU**（AMD IOMMU / SVIOMMU）：Enabled
 
 Advanced -> AMD CBS -> IOMMU : Enabled (最初はAuto)
+
+<img width="792" height="418" alt="image" src="https://github.com/user-attachments/assets/1ef45450-1858-4b67-9f2b-7f2b3109ecd4" />
+
 
 * **Above 4G Decoding**：Enabled
 
 Advanced -> PCI Subsystem Settings -> Above 4G Decoding : Enabled (最初からこう)
 
+<img width="792" height="408" alt="image" src="https://github.com/user-attachments/assets/7ac2a3ca-4b56-47eb-8e61-d57ca0420d42" />
+
+
 * **Re-Size BAR**：Enabled
 
 Advanced -> PCI Subsystem Settings -> Resize BAR Support : Enabled (最初からこう)
 
+上画像に写っている
 
 * **SATA Mode**：AHCI
 
 Advanced -> SATA Configuration -> SATA Mode : AHCI (最初からこう)
+
+<img width="1240" height="590" alt="image" src="https://github.com/user-attachments/assets/de3129c1-dc9a-4611-99fd-e7bb668eed45" />
+
   
 * **Boot**：USBインストーラを最優先（UEFIの方）
 * メモリはEXPO/XMPを有効（安定しない場合はAutoに戻す）
 
 EXPO : Enabled -> これすると、Q ~LEDが黄色(DRAM)で進まなくなった　
-以下でBIOS初期化して治った
+以下でBIOS初期化して治った 
 ```
-完全放電
-電源長押しでOFF → PSU背面を「0」に → 電源ケーブルを抜く
-PCの電源ボタンを10秒長押し（放電）
-CMOSクリア（EXPOをリセット）
-マザボ上の CLRTC（Clear CMOS）ピン をドライバー等で 5〜10秒ショート
+完全放電手順
+・電源長押しでOFF → PSU背面を「0」に → 電源ケーブルを抜く
+・PCの電源ボタンを10秒長押し（放電）
+
+CMOSクリア手順（EXPOをリセット）
+・マザボ上の CLRTC（Clear CMOS）ピン をドライバー等で 5〜10秒ショート
 ```
 
 Advanced -> USB Configuration -> Legacy USB Support & XHCI Hand-off : Enabled (最初からこう)
 
 Boot -> Secure Boot -> OS Type : Other OS (最初からこう)
 
+<img width="791" height="431" alt="image" src="https://github.com/user-attachments/assets/38dbd2af-18a6-4e95-9280-451981dd7b4a" />
+
 Boot -> Boot Configuration -> Fast Boot : Disabled　(最初はEnabled)
 
+写真撮り忘れた
+
 保存してUSBから起動。
+
+Boot -> 一番下のUSB（UEFI:BUFFALO USB Flash Disk...）をクリック -> 
+
+<img width="790" height="542" alt="image" src="https://github.com/user-attachments/assets/8684d08d-cdb5-41e0-8635-339b7731eaeb" />
+
+「Save configuration and reset?」と聞かれるので、「OK」-> 再起動される
+
+<img width="794" height="538" alt="image" src="https://github.com/user-attachments/assets/e2b868c2-d615-4740-b78d-98646ad403e9" />
+
+再起動の後なぜか再度BIOSが表示されたため、再度「Save & Exit(F10)」で再起動 -> Proxmoxが起動した
+
 
 ---
 
