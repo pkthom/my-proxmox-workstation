@@ -255,6 +255,39 @@ rpool  autotrim  on        local
 root@pve:~# 
 ```
 
+```
+root@pve:~# zfs create -V 700G -o volblocksize=64K nvme2/d_vol
+root@pve:~# zfs create -V 200G -o volblocksize=64K nvme2/e_vol
+cannot create 'nvme2/e_vol': out of space
+root@pve:~# zfs create -V 195G -o volblocksize=64K nvme2/e_vol
+```
+```
+root@pve:~# zfs list -o name,volsize,refreservation,used,refer -r nvme2
+NAME         VOLSIZE  REFRESERV   USED  REFER
+nvme2              -       none   899G    96K
+nvme2/d_vol     700G       703G   703G    56K
+nvme2/e_vol     195G       196G   196G    56K
+root@pve:~# zfs get volsize,volblocksize,compression,atime,refreservation -r nvme2
+NAME         PROPERTY        VALUE           SOURCE
+nvme2        volsize         -               -
+nvme2        volblocksize    -               -
+nvme2        compression     lz4             local
+nvme2        atime           off             local
+nvme2        refreservation  none            default
+nvme2/d_vol  volsize         700G            local
+nvme2/d_vol  volblocksize    64K             -
+nvme2/d_vol  compression     lz4             inherited from nvme2
+nvme2/d_vol  atime           -               -
+nvme2/d_vol  refreservation  703G            local
+nvme2/e_vol  volsize         195G            local
+nvme2/e_vol  volblocksize    64K             -
+nvme2/e_vol  compression     lz4             inherited from nvme2
+nvme2/e_vol  atime           -               -
+nvme2/e_vol  refreservation  196G            local
+root@pve:~# 
+```
+
+
 # 4) NVMeプール作成（VM格納用・編集用）
 
 **デバイス名は“by-id”で指定**（リネーム事故防止）。まず確認：
