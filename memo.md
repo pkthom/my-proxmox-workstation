@@ -115,6 +115,12 @@ Advanced -> SATA Configuration -> SATA Mode : AHCI
 
 EXPO : Enabled
 
+Advanced -> USB Configuration -> Legacy USB Support & XHCI Hand-off : Enabled
+
+Boot -> Secure Boot -> OS Type : Other OS
+
+BBoot -> Boot Configuration -> Fast Boot : Disabled
+
 保存してUSBから起動。
 
 ---
