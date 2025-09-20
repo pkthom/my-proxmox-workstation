@@ -122,7 +122,7 @@ UEFI BIOSが出た
 
 ---
 
-# 1) BIOS設定（いまここ）
+# 1) BIOS設定
 
 ### Primary Display / Integrated Graphics**：内蔵iGPUを優先　
 
@@ -216,6 +216,8 @@ Boot -> 一番下のUSB（UEFI:BUFFALO USB Flash Disk...）をクリック ->
 
 再起動の後なぜか再度BIOSが表示されたため、再度「Save & Exit(F10)」で再起動 -> Proxmoxが起動した
 
+# 1) Proxmox設定
+
 ### Proxmox起動
 
 「Install Proxmox VE (Graphical)」を選択
@@ -259,33 +261,10 @@ I agree をクリック
 
 マシンとルーターをLANケーブルで繋いだら、設定したIP(192.168.11.10)にpingが通るようになり、https://192.168.11.10:8006/ でコンソールにアクセスできる
 
----
-
-# 2) ProxmoxをZFSミラーへインストール（SATA SSD 250GB×2）
-
-1. インストーラで **Install Proxmox VE** → **Target** を **ZFS** 選択
-
-   * **RAID1（Mirror）** を選び、2台のSATA SSDを指定
-   * **ashift=12**（4Kセクタ想定）、**Compression lz4**（後でzstdに変更可）
-   * ホスト名：`pve.local` など
-2. **IP設定**：ここで**静的IP**にしておく（上の設計通り）
-
-   * IP：`192.168.50.10/24`、GW：`192.168.50.1`、DNS：`192.168.50.1`
-3. インストール完了→再起動→`https://192.168.50.10:8006/` にログイン
-
-以降はWeb UIかSSHで作業。
-
----
-
 # 3) Proxmox初期設定 & 更新
 
+ディスクの状態
 ```bash
-# 最新化
-apt update && apt -y full-upgrade
-
-# ZFSチューニング（任意）
-zpool set autotrim=on rpool
-# rpoolはOSプール、圧縮は既定lz4のままでOK（必要ならzstdへ）
 root@pve:~# lsblk -o NAME,SIZE,MODEL
 NAME      SIZE MODEL
 sda       3.6T ST4000VN006-3CW104
@@ -300,6 +279,11 @@ sdd     232.9G CT250MX500SSD1
 └─sdd3    231G 
 nvme0n1 931.5G CT1000T500SSD8
 nvme1n1 931.5G CT1000T500SSD8
+root@pve:~#
+```
+
+OS領域のautotrimをONにする
+```
 root@pve:~# zpool get autotrim
 NAME   PROPERTY  VALUE     SOURCE
 rpool  autotrim  off       default
@@ -309,6 +293,8 @@ NAME   PROPERTY  VALUE     SOURCE
 rpool  autotrim  on        local
 root@pve:~# 
 ```
+
+有料版のお知らせをdisableする
 ```
 root@pve:~# sed -i 's/^deb/#deb/g' /etc/apt/sources.list.d/pve-enterprise.list
 echo 'deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription' \
@@ -316,19 +302,31 @@ echo 'deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription' \
 sed: can't read /etc/apt/sources.list.d/pve-enterprise.list: No such file or directory
 root@pve:~# 
 ```
+
+最新にする
 ```
 root@pve:~# apt update
 ```
 ```
 root@pve:~# apt full-upgrade -y
 ```
+
+再起動
 ```
 reboot
 ```
 
----
+# NVMe設定
 
+ゴール
+```
+・NVMe1枚目 -> VM作る場所
+・NVMe2枚目 -> 編集用VM直付け用
+     |---> d_vol -> 素材置き場
+     |---> e_vol -> キャッシュ領域
+```
 
+Poolを作る
 ```
 root@pve:~# zpool create -o ashift=12 nvme1 /dev/nvme1n0
 root@pve:~# zpool create -o ashift=12 nvme2 /dev/nvme1n1
@@ -350,10 +348,13 @@ nvme2  compression  on              default
 nvme2  atime        on              default
 root@pve:~# 
 ```
+atimeをONにする
 ```
 root@pve:~# zfs set atime=off nvme1
 root@pve:~# zfs set atime=off nvme2
 ```
+
+圧縮形式を、lz4にする
 ```
 root@pve:~# zfs set compression=lz4 nvme1
 root@pve:~# zfs set compression=lz4 nvme2
@@ -367,6 +368,7 @@ nvme2  compression  lz4             local
 nvme2  atime        off             local
 root@pve:~# 
 ```
+autotrimをONにする
 ```
 root@pve:~# zpool get autotrim
 NAME   PROPERTY  VALUE     SOURCE
@@ -383,6 +385,7 @@ rpool  autotrim  on        local
 root@pve:~# 
 ```
 
+仮想ディスクを作成
 ```
 root@pve:~# zfs create -V 700G -o volblocksize=64K nvme2/d_vol
 root@pve:~# zfs create -V 200G -o volblocksize=64K nvme2/e_vol
@@ -415,12 +418,35 @@ nvme2/e_vol  refreservation  196G            local
 root@pve:~# 
 ```
 
+Proxmoxにストレージ登録（GUI）
 
+nvme1
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/15600789-87e8-4bc6-99a3-597bac0a7720" />
+
+nvme2
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/095b429d-8106-4cf7-a131-9f5d612ff786" />
+
+↓
+
+こうなる
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/b38877cf-46a1-4ba7-8e17-55084acbe87f" />
+
+
+# HDD設定
+
+ZFSでRAID1(ミラー)を組む
 ```
 root@pve:~# zpool create -o ashift=12 hdds mirror /dev/sda /dev/sdb
 root@pve:~# echo $?
 0
+```
+圧縮はzstd-3にする
+```
 root@pve:~# zfs set compression=zstd-3 hdds
+```
+atime=offにする（autotrimはOFFのままで良い）
+```
 root@pve:~# zfs set atime=off hdds
 root@pve:~# zpool get autotrim
 NAME   PROPERTY  VALUE     SOURCE
@@ -447,64 +473,8 @@ hdds   800K  3.51T   104K  /hdds
 root@pve:~# 
 ```
 
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/1dab9ecc-252d-4372-9eaf-69399e03f280" />
 
-# 4) NVMeプール作成（VM格納用・編集用）
-
-**デバイス名は“by-id”で指定**（リネーム事故防止）。まず確認：
-
-```bash
-ls -l /dev/disk/by-id/
-```
-
-## 4-1) VM格納用プール（nvme1）
-
-```bash
-zpool create -o ashift=12 -o autotrim=on nvme1 /dev/disk/by-id/<NVME1-ID>
-zfs set compression=zstd-3 nvme1
-```
-
-## 4-2) 編集素材/キャッシュ用プール（nvme2）
-
-```bash
-zpool create -o ashift=12 -o autotrim=on nvme2 /dev/disk/by-id/<NVME2-ID>
-zfs set compression=zstd-3 nvme2
-```
-
-## 4-3) Proxmoxにストレージ登録（GUI）
-
-`Datacenter > Storage > Add > ZFS`
-
-* ID: `zfs-nvme1` / `zfs-nvme2`
-* Pool: `nvme1` / `nvme2`
-* Content: **Disk image, ISO, Container, Snippets**（少なくとも Disk image はオン）
-
----
-
-# 5) HDDミラープール作成（4TB×2：hdds）
-
-```bash
-zpool create -o ashift=12 hdds mirror /dev/disk/by-id/<HDD1-ID> /dev/disk/by-id/<HDD2-ID>
-zfs set autotrim=on hdds
-zfs set compression=zstd-3 hdds
-```
-
-**データセット**（大容量向けにatime OFF, 大きめrecordsize）：
-
-```bash
-zfs create -o atime=off -o recordsize=1M hdds/pictures
-zfs create -o atime=off -o recordsize=1M hdds/documents
-```
-
-マウントポイントは `/hdds/pictures`, `/hdds/documents` になります。
-
-Proxmoxに**共有用**としても登録（任意）：
-`Datacenter > Storage > Add > Directory`
-
-* ID: `hdds-files`
-* Directory: `/hdds`
-* Content: **ISO/Backup**など任意（共有自体はSambaでやります）
-
----
 
 # 6) Samba（SMB）共有設定（editor=RW, viewer=RO）
 
