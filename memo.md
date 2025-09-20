@@ -288,6 +288,38 @@ root@pve:~#
 ```
 
 
+```
+root@pve:~# zpool create -o ashift=12 hdds mirror /dev/sda /dev/sdb
+root@pve:~# echo $?
+0
+root@pve:~# zfs set compression=zstd-3 hdds
+root@pve:~# zfs set atime=off hdds
+root@pve:~# zpool get autotrim
+NAME   PROPERTY  VALUE     SOURCE
+hdds   autotrim  off       default
+nvme1  autotrim  on        local
+nvme2  autotrim  on        local
+rpool  autotrim  on        local
+root@pve:~#
+root@pve:~# zpool status hdds
+  pool: hdds
+ state: ONLINE
+config:
+
+        NAME        STATE     READ WRITE CKSUM
+        hdds        ONLINE       0     0     0
+          mirror-0  ONLINE       0     0     0
+            sda     ONLINE       0     0     0
+            sdb     ONLINE       0     0     0
+
+errors: No known data errors
+root@pve:~# zfs list hdds
+NAME   USED  AVAIL  REFER  MOUNTPOINT
+hdds   800K  3.51T   104K  /hdds
+root@pve:~# 
+```
+
+
 # 4) NVMeプール作成（VM格納用・編集用）
 
 **デバイス名は“by-id”で指定**（リネーム事故防止）。まず確認：
