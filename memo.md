@@ -81,15 +81,39 @@ pkthom@MacBook-Pro Downloads %
 
 # 1) BIOS設定（いまここ）
 
-* **Primary Display / Integrated Graphics**：内蔵iGPUを**優先**
+* **Primary Display / Integrated Graphics**：内蔵iGPUを**優先**　
+
+Advanced -> NB Configuration -> Primary Video Device : IGFX Video
+
 * **CSM**：Disabled（UEFIオンリー）
+
+Boot -> CSM(Compatibility Support Module) -> Launch CSM : Disabled
+  
 * **SVM (AMD-V)**：Enabled
+
+Advanced -> CPU Configuration -> SVM Mode : Enabled
+
 * **IOMMU**（AMD IOMMU / SVIOMMU）：Enabled
+
+Advanced -> AMD CBS -> IOMMU : Enabled
+
 * **Above 4G Decoding**：Enabled
+
+Advanced -> PCI Subsystem Settings -> Above 4G Decoding : Enabled
+
 * **Re-Size BAR**：Enabled
+
+Advanced -> PCI Subsystem Settings -> Resize BAR Support : Enabled
+
+
 * **SATA Mode**：AHCI
+
+Advanced -> SATA Configuration -> SATA Mode : AHCI
+  
 * **Boot**：USBインストーラを最優先（UEFIの方）
 * メモリはEXPO/XMPを有効（安定しない場合はAutoに戻す）
+
+EXPO : Enabled
 
 保存してUSBから起動。
 
