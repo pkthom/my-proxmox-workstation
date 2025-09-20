@@ -200,6 +200,61 @@ reboot
 
 ---
 
+
+```
+root@pve:~# zpool create -o ashift=12 nvme1 /dev/nvme1n0
+root@pve:~# zpool create -o ashift=12 nvme2 /dev/nvme1n1
+root@pve:~# zpool list
+NAME    SIZE  ALLOC   FREE  CKPOINT  EXPANDSZ   FRAG    CAP  DEDUP    HEALTH  ALTROOT
+nvme1   928G   420K   928G        -         -     0%     0%  1.00x    ONLINE  -
+nvme2   928G   516K   928G        -         -     0%     0%  1.00x    ONLINE  -
+rpool   230G  2.05G   228G        -         -     0%     0%  1.00x    ONLINE  -
+root@pve:~# 
+```
+```
+root@pve:~# zfs get compression,atime nvme1
+NAME   PROPERTY     VALUE           SOURCE
+nvme1  compression  on              default
+nvme1  atime        on              default
+root@pve:~# zfs get compression,atime nvme2
+NAME   PROPERTY     VALUE           SOURCE
+nvme2  compression  on              default
+nvme2  atime        on              default
+root@pve:~# 
+```
+```
+root@pve:~# zfs set atime=off nvme1
+root@pve:~# zfs set atime=off nvme2
+```
+```
+root@pve:~# zfs set compression=lz4 nvme1
+root@pve:~# zfs set compression=lz4 nvme2
+root@pve:~# zfs get compression,atime nvme1
+NAME   PROPERTY     VALUE           SOURCE
+nvme1  compression  lz4             local
+nvme1  atime        off             local
+root@pve:~# zfs get compression,atime nvme2
+NAME   PROPERTY     VALUE           SOURCE
+nvme2  compression  lz4             local
+nvme2  atime        off             local
+root@pve:~# 
+```
+```
+root@pve:~# zpool get autotrim
+NAME   PROPERTY  VALUE     SOURCE
+nvme1  autotrim  off       default
+nvme2  autotrim  off       default
+rpool  autotrim  on        local
+root@pve:~# zpool set autotrim=on nvme1
+root@pve:~# zpool set autotrim=on nvme2
+root@pve:~# zpool get autotrim
+NAME   PROPERTY  VALUE     SOURCE
+nvme1  autotrim  on        local
+nvme2  autotrim  on        local
+rpool  autotrim  on        local
+root@pve:~# 
+```
+
 # 4) NVMeプール作成（VM格納用・編集用）
 
 **デバイス名は“by-id”で指定**（リネーム事故防止）。まず確認：
