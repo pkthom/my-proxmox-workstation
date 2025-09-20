@@ -380,6 +380,18 @@ Proxmoxに**共有用**としても登録（任意）：
 
 # 6) Samba（SMB）共有設定（editor=RW, viewer=RO）
 
+```
+root@pve:~# apt update
+root@pve:~# apt install -y samba samba-vfs-modules
+```
+既にenabled
+```
+root@pve:~# systemctl is-enabled smbd
+enabled
+root@pve:~# systemctl is-enabled nmbd
+enabled
+```
+
 ```bash
 apt -y install samba acl
 groupadd smbshare
