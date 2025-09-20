@@ -83,43 +83,51 @@ pkthom@MacBook-Pro Downloads %
 
 * **Primary Display / Integrated Graphics**：内蔵iGPUを**優先**　
 
-Advanced -> NB Configuration -> Primary Video Device : IGFX Video
+Advanced -> NB Configuration -> Primary Video Device : IGFX Video (デフォルトはPCIE Video)
 
 * **CSM**：Disabled（UEFIオンリー）
 
-Boot -> CSM(Compatibility Support Module) -> Launch CSM : Disabled
+Boot -> CSM(Compatibility Support Module) -> Launch CSM : Disabled (最初からこう)
   
 * **SVM (AMD-V)**：Enabled
 
-Advanced -> CPU Configuration -> SVM Mode : Enabled
+Advanced -> CPU Configuration -> SVM Mode : Enabled (最初からこう)
 
 * **IOMMU**（AMD IOMMU / SVIOMMU）：Enabled
 
-Advanced -> AMD CBS -> IOMMU : Enabled
+Advanced -> AMD CBS -> IOMMU : Enabled (最初はAuto)
 
 * **Above 4G Decoding**：Enabled
 
-Advanced -> PCI Subsystem Settings -> Above 4G Decoding : Enabled
+Advanced -> PCI Subsystem Settings -> Above 4G Decoding : Enabled (最初からこう)
 
 * **Re-Size BAR**：Enabled
 
-Advanced -> PCI Subsystem Settings -> Resize BAR Support : Enabled
+Advanced -> PCI Subsystem Settings -> Resize BAR Support : Enabled (最初からこう)
 
 
 * **SATA Mode**：AHCI
 
-Advanced -> SATA Configuration -> SATA Mode : AHCI
+Advanced -> SATA Configuration -> SATA Mode : AHCI (最初からこう)
   
 * **Boot**：USBインストーラを最優先（UEFIの方）
 * メモリはEXPO/XMPを有効（安定しない場合はAutoに戻す）
 
-EXPO : Enabled
+EXPO : Enabled -> これすると、Q ~LEDが黄色(DRAM)で進まなくなった　
+以下でBIOS初期化して治った
+```
+完全放電
+電源長押しでOFF → PSU背面を「0」に → 電源ケーブルを抜く
+PCの電源ボタンを10秒長押し（放電）
+CMOSクリア（EXPOをリセット）
+マザボ上の CLRTC（Clear CMOS）ピン をドライバー等で 5〜10秒ショート
+```
 
-Advanced -> USB Configuration -> Legacy USB Support & XHCI Hand-off : Enabled
+Advanced -> USB Configuration -> Legacy USB Support & XHCI Hand-off : Enabled (最初からこう)
 
-Boot -> Secure Boot -> OS Type : Other OS
+Boot -> Secure Boot -> OS Type : Other OS (最初からこう)
 
-BBoot -> Boot Configuration -> Fast Boot : Disabled
+Boot -> Boot Configuration -> Fast Boot : Disabled　(最初はEnabled)
 
 保存してUSBから起動。
 
