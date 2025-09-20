@@ -158,6 +158,44 @@ apt update && apt -y full-upgrade
 # ZFSチューニング（任意）
 zpool set autotrim=on rpool
 # rpoolはOSプール、圧縮は既定lz4のままでOK（必要ならzstdへ）
+root@pve:~# lsblk -o NAME,SIZE,MODEL
+NAME      SIZE MODEL
+sda       3.6T ST4000VN006-3CW104
+sdb       3.6T ST4000VN006-3CW104
+sdc     232.9G CT250MX500SSD1
+├─sdc1   1007K 
+├─sdc2      1G 
+└─sdc3    231G 
+sdd     232.9G CT250MX500SSD1
+├─sdd1   1007K 
+├─sdd2      1G 
+└─sdd3    231G 
+nvme0n1 931.5G CT1000T500SSD8
+nvme1n1 931.5G CT1000T500SSD8
+root@pve:~# zpool get autotrim
+NAME   PROPERTY  VALUE     SOURCE
+rpool  autotrim  off       default
+root@pve:~# zpool set autotrim=on rpool
+root@pve:~# zpool get autotrim
+NAME   PROPERTY  VALUE     SOURCE
+rpool  autotrim  on        local
+root@pve:~# 
+```
+```
+root@pve:~# sed -i 's/^deb/#deb/g' /etc/apt/sources.list.d/pve-enterprise.list
+echo 'deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription' \
+  > /etc/apt/sources.list.d/pve-no-subscription.list
+sed: can't read /etc/apt/sources.list.d/pve-enterprise.list: No such file or directory
+root@pve:~# 
+```
+```
+root@pve:~# apt update
+```
+```
+root@pve:~# apt full-upgrade -y
+```
+```
+reboot
 ```
 
 ---
