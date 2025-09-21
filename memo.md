@@ -1026,6 +1026,74 @@ Load Driverをクリック
 インストールが始まる
 <img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/6e17a817-b1af-401d-ba4c-83f6b2ad842c" />
 
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/cf553f23-2943-4526-acf7-c0a633e7a248" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/ab318cd4-8855-43ec-b125-6f93cccd7783" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/23f231a0-be07-48c6-b3eb-fb49c04d6df8" />
+
+Install driver をクリック
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/edd571fe-0cae-4b73-92c9-47fd8e39826f" />
+
+NetKVM\w11\amd64　を選択
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/804c4415-2cc7-4cb6-b138-473ef5f944f0" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/b4ab1587-8841-4797-9722-aa4502822701" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/678cbaa3-1e26-4b73-878e-6a630c30c26b" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/98d7d580-1236-44dd-b777-c00d8ea26eb7" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/2d83a1d0-1ea4-4be6-b57f-2614f75ce071" />
+
+私用かビジネスか、を聞かれたがスクショ忘れ　私用を選んだ
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/6840262f-9de0-4067-9068-971880efd1ba" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/2c132ee4-3169-4776-902e-c7c593ad3898" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/ea234787-70b0-4f20-ac3f-7199eeac431d" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/a85a38d0-187b-404a-8f29-aef6569d0564" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/cdd3f7d0-0c7c-43d3-a6f6-76d9656fbaf4" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/72c36b33-db75-4f50-9079-bd422f1433d9" />
+
+インストール完了
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/c03d4607-cbf7-4675-899b-a25864a9b46a" />
+
+# VirtIO 一括インストール
+
+virtio-win-guest-tools.exe（ISOのルート直下）を実行する（ダブルクリックで良い）
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/6850b261-6c94-40e4-8b4c-61fc422b1eed" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/8039157f-d7cc-49de-9656-416b9204cd7b" />
+
+全部そのままNext -> Finish
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/c38e46f7-8d1c-43d1-a97e-c50db4291178" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/bd3eeb53-9895-44fa-8f61-88e3127a5c5f" />
+
+# GPUドライバ（4060）を入れる
+
+GPUに⚠️マークがついている これを無くすことを目指す
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/cc328c3d-47c0-4468-88a8-33ac14eb0348" />
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/113114ed-49ec-4015-b4dd-5130d4a0270f" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/9a40c560-5327-4063-8271-b5306a201626" />
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/886865cc-e8b3-4bd9-affb-ef9ad1749ee2" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/0b07c7ef-a378-47da-9d1f-1b36202006e6" />
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/298a57ba-b658-4fe2-beb0-60c655e6ac2f" />
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/19ace9b0-81fb-4eeb-a2c8-9976f065135a" />
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/6a158943-48d0-4524-a007-b7a7d10ad42d" />
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/fda4d6d6-9acb-4bc6-937e-ec7d6048c1da" />
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/3cdb19d4-53a4-4d3a-9750-fc947609d844" />
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/189edff4-32dc-43d5-82ca-e159c4c0090f" />
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/4638b98f-1bb4-434d-9424-8c8c3d1d220d" />
+
 **ISO**：Windows 11 (x64 24H2 など)、**virtio-win ISO**もアップロード（`local`のISO領域へ）
 
 GUI: `Create VM`
