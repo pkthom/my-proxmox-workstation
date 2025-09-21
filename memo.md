@@ -1094,6 +1094,11 @@ GPUに⚠️マークがついている これを無くすことを目指す
 <img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/189edff4-32dc-43d5-82ca-e159c4c0090f" />
 <img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/4638b98f-1bb4-434d-9424-8c8c3d1d220d" />
 
+インストール完了 -> VM再起動
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/b610ba18-4551-43bd-b55a-f68ba79839bb" />
+
+
+
 **ISO**：Windows 11 (x64 24H2 など)、**virtio-win ISO**もアップロード（`local`のISO領域へ）
 
 GUI: `Create VM`
