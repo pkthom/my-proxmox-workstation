@@ -673,7 +673,11 @@ root@pve:~# cat /etc/samba/smb.conf
    server min protocol = SMB2
    server max protocol = SMB3
 
-   vfs objects = acl_xattr
+   vfs objects = catia fruit streams_xattr acl_xattr
+   fruit:metadata = stream
+   fruit:resource = stream
+   fruit:delete_empty_adfiles = yes
+   fruit:encoding = native
    map acl inherit = yes
    store dos attributes = yes
    ea support = yes
@@ -686,6 +690,10 @@ root@pve:~# cat /etc/samba/smb.conf
    guest ok = no
    valid users = editor, viewer
    write list = editor, @editors
+   vfs objects = catia fruit streams_xattr acl_xattr
+   fruit:metadata = stream
+   fruit:resource = stream
+   fruit:delete_empty_adfiles = yes
 
 [documents]
    path = /hdds/documents
@@ -694,7 +702,10 @@ root@pve:~# cat /etc/samba/smb.conf
    guest ok = no
    valid users = editor, viewer
    write list = editor, @editors
-
+   vfs objects = catia fruit streams_xattr acl_xattr
+   fruit:metadata = stream
+   fruit:resource = stream
+   fruit:delete_empty_adfiles = yes
 root@pve:~# 
 ```
 構文チェックOK
@@ -702,32 +713,6 @@ root@pve:~#
 root@pve:~# testparm -s
 Load smb config files from /etc/samba/smb.conf
 Loaded services file OK.
-Weak crypto is allowed by GnuTLS (e.g. NTLM as a compatibility fallback)
-
-Server role: ROLE_STANDALONE
-
-# Global parameters
-[global]
-        bind interfaces only = Yes
-        interfaces = 192.168.11.0/24 lo
-        server min protocol = SMB2
-        server string = PVE Samba
-        idmap config * : backend = tdb
-        map acl inherit = Yes
-        vfs objects = acl_xattr
-
-
-[pictures]
-        path = /hdds/pictures
-        valid users = editor viewer
-        write list = editor @editors
-
-
-[documents]
-        path = /hdds/documents
-        valid users = editor viewer
-        write list = editor @editors
-root@pve:~# 
 ```
 設定を反映
 ```
@@ -738,123 +723,176 @@ windowsのエクスプローラーで、以下で入れるようになった
 ```
 \\192.168.11.10\pictures
 \\192.168.11.10\documents
-
 ```
 
-
-
-```bash
-apt -y install samba acl
-groupadd smbshare
-# Linuxユーザー（ログイン不可）
-useradd -M -s /usr/sbin/nologin editor
-useradd -M -s /usr/sbin/nologin viewer
-usermod -aG smbshare editor
-# パスワード（SMB用）
-smbpasswd -a editor
-smbpasswd -a viewer
-
-# 所有権とACL
-chown -R root:smbshare /hdds/pictures /hdds/documents
-chmod -R 2775 /hdds/pictures /hdds/documents
-setfacl -R -m g:smbshare:rwx /hdds/pictures /hdds/documents
-setfacl -R -m u:viewer:rx /hdds/pictures /hdds/documents
+MacではFinderで、以下で入れる
+```
+smb://192.168.11.10/pictures
+smb://192.168.11.10/documents
 ```
 
-`/etc/samba/smb.conf` 末尾に追記（**share名はURLで使う名前**。Windowsは `\\<IP>\pictures` 形式でアクセスします）：
+<img width="598" height="343" alt="image" src="https://github.com/user-attachments/assets/94eb722a-7b03-4a7e-a186-51a24330eed8" />
 
-```ini
-[pictures]
-   path = /hdds/pictures
-   browsable = yes
-   read only = no
-   valid users = editor viewer
-   write list = editor
-   force group = smbshare
-   create mask = 0664
-   directory mask = 2775
-   vfs objects = acl_xattr
-   inherit permissions = yes
+<img width="542" height="398" alt="image" src="https://github.com/user-attachments/assets/d1721371-d5e2-436d-a73b-95fa34609a09" />
 
-[documents]
-   path = /hdds/documents
-   browsable = yes
-   read only = no
-   valid users = editor viewer
-   write list = editor
-   force group = smbshare
-   create mask = 0664
-   directory mask = 2775
-   vfs objects = acl_xattr
-   inherit permissions = yes
+<img width="1238" height="886" alt="image" src="https://github.com/user-attachments/assets/7dd875f5-aade-4b07-bd20-df2a6c18eb5d" />
+
+# 「RTX 4060 を“ホスト(Proxmox)”では使わず、Windowsの箱(=VM)に丸ごと渡す」**ための準備をする
+
+前提知識
+```
+PCの内部バス(PCIe)に刺さっている部品には住所があります。
+書式は 「バス:デバイス.機能」（bus:device.function）。
+
+01:00.0 … 4060本体（映像を出す機能 = VGA）
+
+01:00.1 … 4060の音（HDMIオーディオ）
+
+1枚のグラボでも「映像」と「音」は別の住所を持っています。だから2つともWindowsに渡す必要があります。
 ```
 
-再起動：
+目標
+```
+1.ホストが4060を使わないようにする
+→ 4060を「貸出窓口（vfio）」に預ける
 
-```bash
-systemctl restart smbd
+2.Windows VMに 4060 を貸し出す
+→ ProxmoxのVM設定から「この住所のデバイスを渡す」
+
+このときの合言葉が vfio-pci。
+lspci -k で 「Kernel driver in use: vfio-pci」 と出れば、ホストは触っていない＝VMに貸せる状態です。
+```
+vfio-pci とは？
+```
+ざっくり言うと、**vfio-pci は「PCIeデバイスの貸出係」**です。
+Linux（Proxmox）の通常ドライバの代わりにそのデバイスを“掴んで”、まるごとVMに貸し出すための仕組み（ドライバ）です。
+
+VMにパススルーする時、GPUを予約してくれるドライバ
 ```
 
-> 以後、Windows/macOSから：
-> `\\192.168.50.10\pictures` / `\\192.168.50.10\documents`（Windows）
-> `smb://192.168.50.10/pictures`（Mac）
-> でアクセス。**Xドライブは `\\192.168.50.10\pictures` に割り当て**してください。
-
----
-
-# 7) ネットワーク（Proxmoxブリッジの固定IP）
-
-Proxmoxは標準で `vmbr0` があるはず。確認・修正（**ifupdown2**形式）：
-
-```bash
-nano /etc/network/interfaces
+現状 -> 01:00.0 も 01:00.1 も、ホストに掴まれたまま -> これが両方、vfio-pci に掴まれている必要がある
+```
+root@pve:/etc/modules-load.d# lspci -k -s 01:00.0
+01:00.0 VGA compatible controller: NVIDIA Corporation AD107 [GeForce RTX 4060] (rev a1)
+        Subsystem: ASUSTeK Computer Inc. Device 8936
+        Kernel modules: nvidiafb, nouveau
+root@pve:/etc/modules-load.d# lspci -k -s 01:00.1
+01:00.1 Audio device: NVIDIA Corporation AD107 High Definition Audio Controller (rev a1)
+        Subsystem: ASUSTeK Computer Inc. Device 8936
+        Kernel driver in use: snd_hda_intel
+        Kernel modules: snd_hda_intel
+root@pve:/etc/modules-load.d#
 ```
 
-例：
+GPUのデバイスIDを調べる
 
-```ini
-auto lo
-iface lo inet loopback
-
-auto enp3s0
-iface enp3s0 inet manual
-
-auto vmbr0
-iface vmbr0 inet static
-    address 192.168.50.10/24
-    gateway 192.168.50.1
-    bridge-ports enp3s0
-    bridge-stp off
-    bridge-fd 0
-    dns-nameservers 192.168.50.1 1.1.1.1
+vfio-pci に予約してもらうため、GPUのデバイスIDが必要
+```
+root@pve:/hdds/pictures# lspci -nn | egrep -i 'nvidia|vga|audio'
+01:00.0 VGA compatible controller [0300]: NVIDIA Corporation AD107 [GeForce RTX 4060] [10de:2882] (rev a1)
+01:00.1 Audio device [0403]: NVIDIA Corporation AD107 High Definition Audio Controller [10de:22be] (rev a1)
+0d:00.0 VGA compatible controller [0300]: Advanced Micro Devices, Inc. [AMD/ATI] Raphael [1002:164e] (rev c4)
+0d:00.1 Audio device [0403]: Advanced Micro Devices, Inc. [AMD/ATI] Radeon High Definition Audio Controller [Rembrandt/Strix] [1002:1640]
+0d:00.6 Audio device [0403]: Advanced Micro Devices, Inc. [AMD] Family 17h/19h/1ah HD Audio Controller [1022:15e3]
+root@pve:/hdds/pictures# 
+```
+```
+01:00.0 -> 10de:2882
+01:00.1 -> 10de:22be
+```
+デバイスIDが分かったので、vfio-pciに予約してもらう
+```
+root@pve:/etc/modprobe.d# ls
+amd64-microcode-blacklist.conf  pve-blacklist.conf  zfs.conf
+root@pve:/etc/modprobe.d# cat >/etc/modprobe.d/vfio-pci.conf <<'EOF'
+options vfio-pci ids=10de:2882,10de:22be disable_vga=1
+EOF
+root@pve:/etc/modprobe.d# cat vfio-pci.conf 
+options vfio-pci ids=10de:2882,10de:22be disable_vga=1
+root@pve:/etc/modprobe.d# 
+```
+反映
+```
+update-initramfs -u
+reboot
 ```
 
-適用：
-
-```bash
-ifreload -a
+再起動後、無事vfio-pciによる予約完了
 ```
-
----
-
-# 8) VM用zvolの作成（OSディスク in nvme1、編集用D/E in nvme2）
-
-（Proxmox GUIでVM作成時に自動作成でもOKですが、名前を揃えたい場合は先に作ると管理しやすい）
-
-```bash
-# OSディスク（サイズは必要に応じて）
-zfs create -V 200G -o volblocksize=16K nvme1/win-dev-os
-zfs create -V 120G -o volblocksize=16K nvme1/ubuntu-site-os
-zfs create -V 220G -o volblocksize=16K nvme1/win-edit-os
-
-# 編集用データ／キャッシュ（大きめブロック。64K〜128K）
-zfs create -V 700G -o volblocksize=64K nvme2/d_vol
-zfs create -V 300G -o volblocksize=64K nvme2/e_vol
+root@pve:~# lspci -k -s 01:00.0
+01:00.0 VGA compatible controller: NVIDIA Corporation AD107 [GeForce RTX 4060] (rev a1)
+        Subsystem: ASUSTeK Computer Inc. Device 8936
+        Kernel driver in use: vfio-pci
+        Kernel modules: nvidiafb, nouveau
+root@pve:~# lspci -k -s 01:00.1
+01:00.1 Audio device: NVIDIA Corporation AD107 High Definition Audio Controller (rev a1)
+        Subsystem: ASUSTeK Computer Inc. Device 8936
+        Kernel driver in use: vfio-pci
+        Kernel modules: snd_hda_intel
+root@pve:~# 
 ```
+編集用windows VMにパススルーする準備完了
 
----
 
 # 9) VM① Windows「開発」作成（RDPで使う）
+
+Windows11 のISOファイルをダウンロード
+
+https://www.microsoft.com/ja-jp/software-download/windows11
+<img width="1528" height="1137" alt="image" src="https://github.com/user-attachments/assets/9ce41b52-2957-4e9c-8c07-c20867930ab7" />
+
+localにアップロード
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/0a122594-46f0-4a0b-8af1-7a7490e00ea0" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/4e203e7b-630b-4e6a-8688-d0d793e19b3a" />
+
+
+ドライバをダウンロード
+
+https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.285-1/
+
+<img width="1772" height="1117" alt="image" src="https://github.com/user-attachments/assets/e89fcc2d-1d37-4f00-b52f-17a778039102" />
+
+localにアップロード
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/47a7f5c8-dfec-4e31-a42e-3825a9271ba4" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/7d25cd96-3802-4221-824d-7ce3ff132913" />
+
+<img width="1728" height="396" alt="image" src="https://github.com/user-attachments/assets/50437d91-704d-4f65-a676-d4726206624c" />
+
+
+GPUをwindows用に確保する
+
+IOMMUが有効か確認（後でGPUをパススルーするため）
+```
+root@pve:/hdds/pictures# dmesg | grep -e IOMMU -e AMD-Vi
+[    0.244511] AMD-Vi: Using global IVHD EFR:0x246577efa2254afa, EFR2:0x0
+[    0.502524] pci 0000:00:00.2: AMD-Vi: IOMMU performance counters supported
+[    0.505792] AMD-Vi: Extended features (0x246577efa2254afa, 0x0): PPR NX GT [5] IA GA PC GA_vAPIC
+[    0.505801] AMD-Vi: Interrupt remapping enabled
+[    0.756776] AMD-Vi: Virtual APIC enabled
+[    0.757030] perf/amd_iommu: Detected AMD IOMMU #0 (2 banks, 4 counters/bank).
+root@pve:/hdds/pictures#
+```
+VFIOモジュールを常時ロード
+```
+root@pve:/etc/modules-load.d# ls
+modules.conf
+root@pve:/etc/modules-load.d# cat >/etc/modules-load.d/vfio.conf <<'EOF'
+vfio
+vfio_iommu_type1
+vfio_virqfd
+vfio_pci
+EOF
+root@pve:/etc/modules-load.d# cat vfio.conf 
+vfio
+vfio_iommu_type1
+vfio_virqfd
+vfio_pci
+root@pve:/etc/modules-load.d# 
+```
 
 **ISO**：Windows 11 (x64 24H2 など)、**virtio-win ISO**もアップロード（`local`のISO領域へ）
 
