@@ -490,6 +490,259 @@ root@pve:~# systemctl is-enabled nmbd
 enabled
 ```
 
+仮想ディスクを作る
+```
+root@pve:~# zfs create hdds/pictures
+root@pve:~# zfs create hdds/documents
+```
+できている
+```
+root@pve:~# zfs list
+NAME               USED  AVAIL  REFER  MOUNTPOINT
+hdds               800K  3.51T   104K  /hdds
+hdds/documents      96K  3.51T    96K  /hdds/documents
+hdds/pictures       96K  3.51T    96K  /hdds/pictures
+nvme1              588K   899G    96K  /nvme1
+nvme2              899G   764M    96K  /nvme2
+nvme2/d_vol        703G   703G    56K  -
+nvme2/e_vol        196G   197G    56K  -
+rpool             2.13G   221G   104K  /rpool
+rpool/ROOT        2.12G   221G    96K  /rpool/ROOT
+rpool/ROOT/pve-1  2.12G   221G  2.12G  /
+rpool/data          96K   221G    96K  /rpool/data
+rpool/var-lib-vz    96K   221G    96K  /var/lib/vz
+root@pve:~# 
+```
+
+xattr=sa, acltype=nfsv4 に設定
+```
+root@pve:~# zfs set xattr=sa hdds
+root@pve:~# zfs set acltype=nfsv4 hdds
+root@pve:~# zfs get -r xattr,acltype hdds
+NAME            PROPERTY  VALUE     SOURCE
+hdds            xattr     on        local
+hdds            acltype   nfsv4     local
+hdds/documents  xattr     on        inherited from hdds
+hdds/documents  acltype   nfsv4     inherited from hdds
+hdds/pictures   xattr     on        inherited from hdds
+hdds/pictures   acltype   nfsv4     inherited from hdds
+root@pve:~# 
+```
+
+まず、読み書きできる予定のグループ editors を作る
+```
+root@pve:~# groupadd -f editors
+root@pve:~# getent group
+...
+editors:x:1000:
+```
+ユーザー（editor, viewer）を作る
+
+既にあるか念のためチェック
+```
+root@pve:~# id editor
+id: ‘editor’: no such user
+root@pve:~# id viewer
+id: ‘viewer’: no such user
+```
+ユーザーを作成
+```
+root@pve:~# useradd -m -s /bin/bash editor
+root@pve:~# useradd -m -s /usr/sbin/nologin viewer
+root@pve:~# cat /etc/passwd
+...
+editor:x:1000:1001::/home/editor:/bin/bash
+viewer:x:1001:1002::/home/viewer:/usr/sbin/nologin
+```
+editorユーザーは、editorsグループに所属させておく
+```
+root@pve:~# usermod -aG editors editor
+```
+```
+root@pve:~# id editor
+uid=1000(editor) gid=1001(editor) groups=1001(editor),1000(editors)
+root@pve:~# id viewer
+uid=1001(viewer) gid=1002(viewer) groups=1002(viewer)
+root@pve:~# 
+```
+パスワード設定
+```
+root@pve:~# smbpasswd -a editor
+New SMB password:
+Retype new SMB password:
+Added user editor.
+root@pve:~# smbpasswd -a viewer
+New SMB password:
+Retype new SMB password:
+Added user viewer.
+root@pve:~# 
+```
+
+仮想ディスクの所有グループを、editorsにする(再起的に全部)
+```
+root@pve:~# chown -R root:editors /hdds/pictures
+root@pve:~# chown -R root:editors /hdds/documents
+root@pve:~# ls -lah /hdds
+total 10K
+drwxr-xr-x  4 root root     4 Sep 20 19:36 .
+drwxr-xr-x 21 root root    25 Sep 20 19:33 ..
+drwxr-xr-x  2 root editors  2 Sep 20 19:36 documents
+drwxr-xr-x  2 root editors  2 Sep 20 19:36 pictures
+root@pve:~# 
+```
+※ 変更前はroot:rootだった
+```
+root@pve:/hdds# ls -lah
+total 10K
+drwxr-xr-x  4 root root  4 Sep 20 19:36 .
+drwxr-xr-x 21 root root 25 Sep 20 19:33 ..
+drwxr-xr-x  2 root root  2 Sep 20 19:36 documents
+drwxr-xr-x  2 root root  2 Sep 20 19:36 pictures
+root@pve:/hdds# 
+```
+
+仮想ディスクの中に今後作られる全てのファイル、フォルダの権限を指定する
+
+変更前テスト
+```
+root@pve:/hdds# touch pictures/test
+root@pve:/hdds# touch documents/test
+
+root@pve:/hdds/pictures# mkdir testdir
+root@pve:/hdds/documents# mkdir testdir
+
+root@pve:/hdds# ls -lah pictures/
+total 2.0K
+drwxr-xr-x 3 root editors 4 Sep 21 08:36 .
+drwxr-xr-x 4 root root    4 Sep 20 19:36 ..
+-rw-r--r-- 1 root root    0 Sep 21 08:34 test
+drwxr-xr-x 2 root root    2 Sep 21 08:36 testdir
+root@pve:/hdds#
+root@pve:/hdds# ls -lah documents/
+total 2.0K
+drwxr-xr-x 3 root editors 4 Sep 21 08:36 .
+drwxr-xr-x 4 root root    4 Sep 20 19:36 ..
+-rw-r--r-- 1 root root    0 Sep 21 08:34 test
+drwxr-xr-x 2 root root    2 Sep 21 08:36 testdir
+root@pve:/hdds# 
+```
+2775 -> 2:以下に作成されるすべては、親ディレクトリのグループを引き継ぐ + 775:rootとeditorsグループのメンバーはrwx全部OK 部外者はrx(書きはできない)
+
+664 -> 664: rootとeditorsグループのメンバーはrw(読み書きOK)　部外者はrのみ(書きはできない)
+
+-> ⚠️ ファイルが775ではない理由は、ただの写真で実行する必要ないから（スクリプトならx与えてもいいが）　
+
+-> ⚠️ フォルダが775の理由は、cd や ls など、実行(x)がないとできないから
+```
+root@pve:~# find /hdds/pictures  -type d -exec chmod 2775 {} \;
+root@pve:~# find /hdds/pictures  -type f -exec chmod 664  {} \;
+root@pve:~# find /hdds/documents -type d -exec chmod 2775 {} \;
+root@pve:~# find /hdds/documents -type f -exec chmod 664  {} \;
+```
+acl をインストール
+```
+root@pve:~# apt install -y acl
+```
+```
+root@pve:~# setfacl -R -m g:editors:rwx /hdds/pictures /hdds/documents
+setfacl: /hdds/pictures: Operation not supported
+setfacl: /hdds/documents: Operation not supported
+```
+
+```
+root@pve:/etc/samba# cp smb.conf smb.conf.bak
+root@pve:/etc/samba# ls
+gdbcommands  smb.conf  smb.conf.bak
+```
+
+⚠️ vi で、deleteキー、矢印キーが使えなかった
+```
+apt install -y vim 
+```
+これでvimエディターをインストールすると解決した
+
+smb.conf を編集
+```
+root@pve:~# cat /etc/samba/smb.conf
+[global]
+   workgroup = WORKGROUP
+   server string = PVE Samba
+   interfaces = 192.168.11.0/24 lo
+   bind interfaces only = yes
+
+   server min protocol = SMB2
+   server max protocol = SMB3
+
+   vfs objects = acl_xattr
+   map acl inherit = yes
+   store dos attributes = yes
+   ea support = yes
+   map to guest = never
+
+[pictures]
+   path = /hdds/pictures
+   browseable = yes
+   read only = yes
+   guest ok = no
+   valid users = editor, viewer
+   write list = editor, @editors
+
+[documents]
+   path = /hdds/documents
+   browseable = yes
+   read only = yes
+   guest ok = no
+   valid users = editor, viewer
+   write list = editor, @editors
+
+root@pve:~# 
+```
+構文チェックOK
+```
+root@pve:~# testparm -s
+Load smb config files from /etc/samba/smb.conf
+Loaded services file OK.
+Weak crypto is allowed by GnuTLS (e.g. NTLM as a compatibility fallback)
+
+Server role: ROLE_STANDALONE
+
+# Global parameters
+[global]
+        bind interfaces only = Yes
+        interfaces = 192.168.11.0/24 lo
+        server min protocol = SMB2
+        server string = PVE Samba
+        idmap config * : backend = tdb
+        map acl inherit = Yes
+        vfs objects = acl_xattr
+
+
+[pictures]
+        path = /hdds/pictures
+        valid users = editor viewer
+        write list = editor @editors
+
+
+[documents]
+        path = /hdds/documents
+        valid users = editor viewer
+        write list = editor @editors
+root@pve:~# 
+```
+設定を反映
+```
+root@pve:~# systemctl restart smbd nmbd
+```
+
+windowsのエクスプローラーで、以下で入れるようになった
+```
+\\192.168.11.10\pictures
+\\192.168.11.10\documents
+
+```
+
+
+
 ```bash
 apt -y install samba acl
 groupadd smbshare
