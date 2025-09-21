@@ -862,6 +862,68 @@ localにアップロード
 
 <img width="1728" height="396" alt="image" src="https://github.com/user-attachments/assets/50437d91-704d-4f65-a676-d4726206624c" />
 
+VMを作る
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/418e3535-43a7-4701-b115-a5dcf02425ca" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/46bb820c-a880-4614-9432-abcd9ff9c4d1" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/653b9dd8-cc03-458e-a037-e8a4a194daf0" />
+
+aaa
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/16be32bd-0bc7-4c20-96a3-b5f8e36c6ce0" />
+
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/d0a7bbd9-acc0-4cda-a173-0023a7f97f26" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/43e12a03-30e3-42b6-87cd-40555dbfc4bd" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/948f7e8e-b994-4eea-9c8d-e27367de3e4c" />
+
+確認
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/2c5a181a-30ff-4c9d-a5a9-aa0f2c3f8039" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/4c4db9d1-6fcc-4640-b952-ec75cc5e478f" />
+
+Finish で作成開始
+
+完成
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/7cda9e0f-8f96-4807-9e05-49dd321b62c0" />
+
+ドライバを足す
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/6a8dfe51-24f5-4a4a-b62f-e63c2c308952" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/5eb39c62-1836-4e8f-a137-70d55d5fd9cf" />
+
+```
+root@pve:~# qm stop 100
+root@pve:~# qm set 100 -scsi2 /dev/zvol/nvme2/d_vol,discard=on,iothread=1,cache=writeback
+update VM 100: -scsi2 /dev/zvol/nvme2/d_vol,discard=on,iothread=1,cache=writeback
+root@pve:~#
+root@pve:~# qm set 100 -scsi3 /dev/zvol/nvme2/e_vol,discard=on,iothread=1,cache=writeback
+update VM 100: -scsi3 /dev/zvol/nvme2/e_vol,discard=on,iothread=1,cache=writeback
+root@pve:~# 
+
+```
+```
+root@pve:~# qm config 100 | egrep 'scsi[12]|scsihw'
+boot: order=scsi0;ide2;net0;scsi1
+scsi1: local:iso/virtio-win-0.1.285.iso,media=cdrom,size=771138K
+scsi2: /dev/zvol/nvme2/d_vol,cache=writeback,discard=on,iothread=1,size=700G
+scsihw: virtio-scsi-single
+root@pve:~# 
+```
+```
+root@pve:~# qm start 100
+swtpm_setup: Not overwriting existing state file.
+root@pve:~# 
+```
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/497dc44b-c8a0-48d4-9424-2ec3c5911cbc" />
 
 GPUをwindows用に確保する
 
