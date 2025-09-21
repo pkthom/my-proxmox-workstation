@@ -1097,7 +1097,19 @@ GPUに⚠️マークがついている これを無くすことを目指す
 インストール完了 -> VM再起動
 <img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/b610ba18-4551-43bd-b55a-f68ba79839bb" />
 
+This device is working propery と出ているのでOK
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/a5a32511-5a60-4b75-b9c3-16110fefa23d" />
 
+Audioも正常に動いている
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/e93fb9ac-4ac2-4597-94e4-0451ef579f1b" />
+
+タスクマネージャーに、GPUが追加されている
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/161ab204-bebf-4b4f-a5e2-55db370ceea3" />
+
+NVIDIA Control Panel を入れる
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/c314855d-1863-466e-b34a-bf61d7777edb" />
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/376953f9-1f6e-4ba9-a144-a25e207aa214" />
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/dbcca08b-a87a-4862-be85-668cf2e70f55" />
 
 **ISO**：Windows 11 (x64 24H2 など)、**virtio-win ISO**もアップロード（`local`のISO領域へ）
 
