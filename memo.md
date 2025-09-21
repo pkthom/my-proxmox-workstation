@@ -925,9 +925,11 @@ Finish で作成開始
 
 ドライバを足す
 
-<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/6a8dfe51-24f5-4a4a-b62f-e63c2c308952" />
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/144a31e1-ede7-41d1-b8fc-1f2758f30b08" />
 
-<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/5eb39c62-1836-4e8f-a137-70d55d5fd9cf" />
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/e77b3c47-a41f-4d5f-b013-aebf5ef1c3df" />
+
+SCSIで足すと、windwosセットアップ時に見えなかった
 
 仮想ドライブを、windows VMに直付けする
 ```
@@ -1011,6 +1013,18 @@ Boot Managerに行く
 
 Load Driverをクリック
 <img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/a7fb6c7d-2389-4331-9f09-09c553641c59" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/c1f8a16f-1573-4afc-a63e-7323f89f1eb7" />
+
+これを選択して、Installをクリック
+<img width="1805" height="1093" alt="image" src="https://github.com/user-attachments/assets/055fe198-498d-430d-bb09-c6fa4d14d259" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/32441916-cbd9-4edf-99d3-3e63504f203c" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/9427a3f6-c126-4bb9-9d5d-2a65891b1c94" />
+
+インストールが始まる
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/6e17a817-b1af-401d-ba4c-83f6b2ad842c" />
 
 **ISO**：Windows 11 (x64 24H2 など)、**virtio-win ISO**もアップロード（`local`のISO領域へ）
 
