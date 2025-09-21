@@ -770,6 +770,36 @@ Linux（Proxmox）の通常ドライバの代わりにそのデバイスを“�
 VMにパススルーする時、GPUを予約してくれるドライバ
 ```
 
+IOMMUが有効か確認（後でGPUをパススルーするため）
+```
+root@pve:/hdds/pictures# dmesg | grep -e IOMMU -e AMD-Vi
+[    0.244511] AMD-Vi: Using global IVHD EFR:0x246577efa2254afa, EFR2:0x0
+[    0.502524] pci 0000:00:00.2: AMD-Vi: IOMMU performance counters supported
+[    0.505792] AMD-Vi: Extended features (0x246577efa2254afa, 0x0): PPR NX GT [5] IA GA PC GA_vAPIC
+[    0.505801] AMD-Vi: Interrupt remapping enabled
+[    0.756776] AMD-Vi: Virtual APIC enabled
+[    0.757030] perf/amd_iommu: Detected AMD IOMMU #0 (2 banks, 4 counters/bank).
+root@pve:/hdds/pictures#
+```
+
+vfio-pci の準備
+```
+root@pve:/etc/modules-load.d# ls
+modules.conf
+root@pve:/etc/modules-load.d# cat >/etc/modules-load.d/vfio.conf <<'EOF'
+vfio
+vfio_iommu_type1
+vfio_virqfd
+vfio_pci
+EOF
+root@pve:/etc/modules-load.d# cat vfio.conf 
+vfio
+vfio_iommu_type1
+vfio_virqfd
+vfio_pci
+root@pve:/etc/modules-load.d# 
+```
+
 現状 -> 01:00.0 も 01:00.1 も、ホストに掴まれたまま -> これが両方、vfio-pci に掴まれている必要がある
 ```
 root@pve:/etc/modules-load.d# lspci -k -s 01:00.0
@@ -899,6 +929,7 @@ Finish で作成開始
 
 <img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/5eb39c62-1836-4e8f-a137-70d55d5fd9cf" />
 
+仮想ドライブを、windows VMに直付けする
 ```
 root@pve:~# qm stop 100
 root@pve:~# qm set 100 -scsi2 /dev/zvol/nvme2/d_vol,discard=on,iothread=1,cache=writeback
@@ -909,6 +940,8 @@ update VM 100: -scsi3 /dev/zvol/nvme2/e_vol,discard=on,iothread=1,cache=writebac
 root@pve:~# 
 
 ```
+
+直付けできたか確認
 ```
 root@pve:~# qm config 100 | egrep 'scsi[12]|scsihw'
 boot: order=scsi0;ide2;net0;scsi1
@@ -925,36 +958,59 @@ root@pve:~#
 
 <img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/497dc44b-c8a0-48d4-9424-2ec3c5911cbc" />
 
-GPUをwindows用に確保する
+# RTX4060をWindows VMにパススルー
 
-IOMMUが有効か確認（後でGPUをパススルーするため）
+GPU本体( 0000:01:00.0)とオーディオ(0000:01:00.1)をパススルー
 ```
-root@pve:/hdds/pictures# dmesg | grep -e IOMMU -e AMD-Vi
-[    0.244511] AMD-Vi: Using global IVHD EFR:0x246577efa2254afa, EFR2:0x0
-[    0.502524] pci 0000:00:00.2: AMD-Vi: IOMMU performance counters supported
-[    0.505792] AMD-Vi: Extended features (0x246577efa2254afa, 0x0): PPR NX GT [5] IA GA PC GA_vAPIC
-[    0.505801] AMD-Vi: Interrupt remapping enabled
-[    0.756776] AMD-Vi: Virtual APIC enabled
-[    0.757030] perf/amd_iommu: Detected AMD IOMMU #0 (2 banks, 4 counters/bank).
-root@pve:/hdds/pictures#
+root@pve:~# qm set 100 -hostpci0 0000:01:00.0,pcie=1
+update VM 100: -hostpci0 0000:01:00.0,pcie=1
+root@pve:~# qm set 100 -hostpci1 0000:01:00.1,pcie=1
+update VM 100: -hostpci1 0000:01:00.1,pcie=1
+root@pve:~# qm config 100 | grep hostpci
+hostpci0: 0000:01:00.0,pcie=1
+hostpci1: 0000:01:00.1,pcie=1
+root@pve:~#
 ```
-VFIOモジュールを常時ロード
+IDは、以下のIDの頭に、0000 をつけたものらしい
 ```
-root@pve:/etc/modules-load.d# ls
-modules.conf
-root@pve:/etc/modules-load.d# cat >/etc/modules-load.d/vfio.conf <<'EOF'
-vfio
-vfio_iommu_type1
-vfio_virqfd
-vfio_pci
-EOF
-root@pve:/etc/modules-load.d# cat vfio.conf 
-vfio
-vfio_iommu_type1
-vfio_virqfd
-vfio_pci
-root@pve:/etc/modules-load.d# 
+root@pve:/hdds/pictures# lspci -nn | egrep -i 'nvidia|vga|audio'
+01:00.0 VGA compatible controller [0300]: NVIDIA Corporation AD107 [GeForce RTX 4060] [10de:2882] (rev a1)
+01:00.1 Audio device [0403]: NVIDIA Corporation AD107 High Definition Audio Controller [10de:22be] (rev a1)
 ```
+
+
+
+最終の状態
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/b399da95-13cd-42d3-b511-15426d7ca7d1" />
+
+GUIでの追加はうまくいかなかった
+
+
+# WindowsVMを起動する
+
+適当なキーを押す
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/de6558ee-8996-4341-95c4-aa687dd21f6f" />
+
+Boot Managerに行く
+<img width="1805" height="1093" alt="image" src="https://github.com/user-attachments/assets/653ccc3a-7d1c-4203-b897-c3c466345140" />
+
+「UEFI QEMU DVD-ROM」を選ぶ（windows ISO）
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/8b34a5f1-8e70-4b65-afcb-e5250ef947dc" />
+
+「何らかのキーを押して、CDかDVDから起動して」みたいなメッセージがほんの2秒ほど出るので、素早くEnterを押すと、、、
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/28670a1e-3a97-4d09-963e-f65984245441" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/26bd9be1-62ad-47b7-b230-a2af487536d0" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/968e9140-b018-4440-a72a-c5ab257a59e6" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/51365265-916a-4555-ae3e-6036295389fc" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/250882e3-e94f-415a-bbea-079bf1438afa" />
+
+Load Driverをクリック
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/a7fb6c7d-2389-4331-9f09-09c553641c59" />
 
 **ISO**：Windows 11 (x64 24H2 など)、**virtio-win ISO**もアップロード（`local`のISO領域へ）
 
