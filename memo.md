@@ -1111,6 +1111,88 @@ NVIDIA Control Panel を入れる
 <img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/376953f9-1f6e-4ba9-a144-a25e207aa214" />
 <img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/dbcca08b-a87a-4862-be85-668cf2e70f55" />
 
+
+# d_vol, e_vol を割り当てる
+
+今、Dドライブ、EドライブはCD-ROM（winsows iso とドライバ）になっている
+
+<img width="759" height="539" alt="image" src="https://github.com/user-attachments/assets/07af962f-1ce9-478d-9171-640ae2a2e34f" />
+
+Windows + R -> diskmgmt.msc で、Disk Management を開く
+<img width="395" height="239" alt="image" src="https://github.com/user-attachments/assets/9795d1cc-3240-4c4b-909e-b0e5e56fcfa8" />
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/41d31a36-21fc-4490-9340-9e7c6f4c92c0" />
+
+まずDドライブ(ドライバ)で右クリック -> Change Drive Letter and Paths... 
+<img width="641" height="507" alt="image" src="https://github.com/user-attachments/assets/6239de02-b282-427d-a57a-139c7561dff7" />
+
+Xを選んでOK 
+<img width="630" height="496" alt="image" src="https://github.com/user-attachments/assets/9c414a4a-3670-4c26-9764-1e458276045e" />
+<img width="773" height="525" alt="image" src="https://github.com/user-attachments/assets/00e4c805-9bdf-488a-baa2-5702a78bfaad" />
+
+EもYに変える
+<img width="732" height="486" alt="image" src="https://github.com/user-attachments/assets/07ebbd0b-06d5-4dc9-acfc-c6ec0d0570a5" />
+
+DとEが空いたので、初期化する
+
+d_vol, e_volは、Unallocated の状態で見えてはいる
+<img width="637" height="504" alt="image" src="https://github.com/user-attachments/assets/01a321aa-84ee-44be-9ae5-1b05f1a6d1c6" />
+
+d_vol, e_vol のどちらかの上で右クリック -> Initialize Disk
+<img width="629" height="499" alt="image" src="https://github.com/user-attachments/assets/dc4fb606-bd13-4e7c-8576-e8b8d8abefce" />
+
+GPTを選んで、initialize
+<img width="631" height="500" alt="image" src="https://github.com/user-attachments/assets/dc10706c-7df2-4d98-8f5a-09000a8b3512" />
+
+d_vol, e_vol上の、警告が消える -> e_volの上で右クリック -> New Simple Volume
+<img width="625" height="496" alt="image" src="https://github.com/user-attachments/assets/e349e43c-a9e2-40f2-9667-5e4ae1f0c9b8" />
+
+そのままOK
+<img width="630" height="503" alt="image" src="https://github.com/user-attachments/assets/1de0a062-79e7-4b0f-a3ee-4bd901acbd8d" />
+
+そのままOK（デフォルトで、割り当てられる最大容量になっている　これ以上上に行けない）
+<img width="628" height="497" alt="image" src="https://github.com/user-attachments/assets/c8de0c8d-f1dc-4478-94d7-553b0b9b07a1" />
+
+文字Dを割り当てる
+<img width="627" height="498" alt="image" src="https://github.com/user-attachments/assets/b3e83258-bf6f-4bce-8c4b-27e9c7cea54f" />
+
+<img width="628" height="490" alt="image" src="https://github.com/user-attachments/assets/b228ac23-95f8-4d0d-8628-c95bed9a85d3" />
+
+Dドライブにできた
+<img width="704" height="525" alt="image" src="https://github.com/user-attachments/assets/16cf801d-1ab9-4d88-ac50-41f8d5cc76f3" />
+
+続いてEドライブも作る
+<img width="636" height="545" alt="image" src="https://github.com/user-attachments/assets/a5dccbf8-1099-47ee-aa11-76ae4921429e" />
+<img width="626" height="501" alt="image" src="https://github.com/user-attachments/assets/d4f69f2f-5fe3-4425-8519-f17b8fbb209b" />
+<img width="624" height="499" alt="image" src="https://github.com/user-attachments/assets/66a75eab-b128-4b4e-9dfb-c17ed3e808ce" />
+<img width="626" height="498" alt="image" src="https://github.com/user-attachments/assets/6691f752-abe6-47b1-be80-a711a1394f3b" />
+<img width="623" height="494" alt="image" src="https://github.com/user-attachments/assets/9445ccd0-ad33-4d1e-a32f-0dfce6ecd5b8" />
+<img width="700" height="543" alt="image" src="https://github.com/user-attachments/assets/9d031af0-1bb8-4543-810d-dd3e77ca03cc" />
+
+# D,Eドライブを、Windows Defenderの管轄外にする（ここは速度重視する）
+
+理由：インデックスは検索を速くしますが、キャッシュ用途では不要で I/O を増やすだけ。
+
+手順
+```
+設定 → Privacy & Security → Windows Security → Virus & threat protection → Manage settings → Add or remove exclusions → Add an exclusion → Folder → D:\ と E:\ を追加。
+```
+<img width="1010" height="581" alt="image" src="https://github.com/user-attachments/assets/93b0f589-1653-4394-9817-041e0d1456b1" />
+
+<img width="383" height="420" alt="image" src="https://github.com/user-attachments/assets/816549a7-fc2c-4483-93aa-1fe456382657" />
+
+# Eドライブのインデックスをdisableする（速度重視）
+
+「このドライブ上のファイルに対し、プロパティだけでなく…」のチェックを外す → 適用
+<img width="494" height="582" alt="image" src="https://github.com/user-attachments/assets/da30b782-0092-4a79-b983-1fc16d5be4a7" />
+
+再起的にdisabbleしてOK
+<img width="528" height="575" alt="image" src="https://github.com/user-attachments/assets/e0301b1e-13da-453c-affc-f964b60c9f53" />
+
+# パフォーマンス重視にする
+
+Win + R -> powercfg.cpl -> High performance を選択
+<img width="660" height="498" alt="image" src="https://github.com/user-attachments/assets/9b1a103d-9d58-42a9-977b-3fb98ce6fdee" />
+
 **ISO**：Windows 11 (x64 24H2 など)、**virtio-win ISO**もアップロード（`local`のISO領域へ）
 
 GUI: `Create VM`
