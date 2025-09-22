@@ -1357,6 +1357,17 @@ exiftool -r -P -d %Y%m \
   '-Directory</hdds/pictures/${DateTimeOriginal}' \
   /hdds/pictures/_inbox
 ```
+残ったら順番に下を試していく
+```
+exiftool -r -P -d %Y%m   '-Directory</hdds/pictures/${CreateDate}'   /hdds/pictures/_inbox
+```
+```
+exiftool -r -P -d %Y%m   '-Directory</hdds/pictures/${MediaCreateDate}'   /hdds/pictures/_inbox
+```
+```
+exiftool -r -P -d %Y%m   '-Directory</hdds/pictures/${FileModifyDate}'   /hdds/pictures/_inbox
+```
+
 
 **ISO**：Windows 11 (x64 24H2 など)、**virtio-win ISO**もアップロード（`local`のISO領域へ）
 
