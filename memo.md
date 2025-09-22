@@ -382,6 +382,17 @@ root@pve:~# apt full-upgrade -y
 reboot
 ```
 
+再起動後、apt update 
+```
+root@pve:~# apt update
+Hit:1 http://deb.debian.org/debian trixie InRelease
+Hit:2 http://deb.debian.org/debian trixie-updates InRelease                                                            
+Hit:3 http://security.debian.org/debian-security trixie-security InRelease                                             
+Hit:4 http://download.proxmox.com/debian/pve trixie InRelease
+All packages are up to date.    
+root@pve:~# 
+```
+
 # NVMe設定
 
 ゴール
