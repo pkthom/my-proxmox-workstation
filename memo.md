@@ -1193,6 +1193,62 @@ Dドライブにできた
 Win + R -> powercfg.cpl -> High performance を選択
 <img width="660" height="498" alt="image" src="https://github.com/user-attachments/assets/9b1a103d-9d58-42a9-977b-3fb98ce6fdee" />
 
+# VMバックアップ
+
+hdds(hdd 4tb ミラー)に、VMバックアップ用の領域(/hdds/backups)を作る 
+```
+root@pve:~# zfs create hdds/backups
+root@pve:~# zfs list
+NAME                  USED  AVAIL  REFER  MOUNTPOINT
+hdds                 5.13M  3.51T   104K  /hdds
+hdds/backups           96K  3.51T    96K  /hdds/backups
+hdds/documents         96K  3.51T    96K  /hdds/documents
+hdds/pictures        4.05M  3.51T  4.05M  /hdds/pictures
+nvme1                 201G   698G    96K  /nvme1
+nvme1/vm-100-disk-0     3M   698G   124K  -
+nvme1/vm-100-disk-1   201G   864G  35.2G  -
+nvme1/vm-100-disk-2     6M   698G    64K  -
+nvme2                 899G   763M    96K  /nvme2
+nvme2/d_vol           703G   703G   370M  -
+nvme2/e_vol           196G   196G   197M  -
+rpool                7.79G   215G   104K  /rpool
+rpool/ROOT           2.15G   215G    96K  /rpool/ROOT
+rpool/ROOT/pve-1     2.15G   215G  2.15G  /
+rpool/data             96K   215G    96K  /rpool/data
+rpool/var-lib-vz     5.63G   215G  5.63G  /var/lib/vz
+root@pve:~# 
+```
+local（250gb ssd ミラー）でも容量が95%くらい余っているので良かったが、OS死んだ時にVMバックアップも死ぬのが微妙
+
+圧縮形式等を変更
+```
+root@pve:~# zfs get compression,atime,recordsize hdds/backups
+NAME          PROPERTY     VALUE           SOURCE
+hdds/backups  compression  zstd-3          inherited from hdds
+hdds/backups  atime        off             inherited from hdds
+hdds/backups  recordsize   128K            default
+root@pve:~# zfs set compression=zstd atime=off recordsize=1M hdds/backups
+root@pve:~# zfs get compression,atime,recordsize hdds/backups
+NAME          PROPERTY     VALUE           SOURCE
+hdds/backups  compression  zstd            local
+hdds/backups  atime        off             local
+hdds/backups  recordsize   1M              local
+root@pve:~# 
+```
+
+バックアップ領域(/hdds/backups) を、Proxmoxに登録 -> バックアップ時、Proxmoxから見えるようにする
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/0d65ff0f-28bf-4361-980a-0715cf0bdc9d" />
+
+登録完了
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/7ed291fa-4003-4025-b910-8073a27e178e" />
+
+バックアップ取得開始
+<img width="1805" height="1093" alt="image" src="https://github.com/user-attachments/assets/5d931287-28fb-43aa-81d4-80be8c8bd95d" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/7806fa6c-835d-4549-b37b-58a2e6971c7d" />
+
+<img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/c8a36aac-98db-4e1e-9b8e-48ef60502d49" />
+
 **ISO**：Windows 11 (x64 24H2 など)、**virtio-win ISO**もアップロード（`local`のISO領域へ）
 
 GUI: `Create VM`
