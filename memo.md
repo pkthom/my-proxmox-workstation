@@ -311,6 +311,72 @@ root@pve:~# apt update
 root@pve:~# apt full-upgrade -y
 ```
 
+apt update 時にエラーが出る
+```
+root@pve:/hdds/pictures/_inbox# apt update
+Hit:1 http://deb.debian.org/debian trixie InRelease
+Get:2 http://deb.debian.org/debian trixie-updates InRelease [47.3 kB]           
+Get:3 http://security.debian.org/debian-security trixie-security InRelease [43.4 kB]                              
+Get:4 http://security.debian.org/debian-security trixie-security/main amd64 Packages [44.3 kB]                  
+Get:5 http://security.debian.org/debian-security trixie-security/main Translation-en [29.9 kB]                             
+Hit:6 http://download.proxmox.com/debian/pve bookworm InRelease                                                 
+Err:7 https://enterprise.proxmox.com/debian/ceph-squid trixie InRelease                                      
+  401  Unauthorized [IP: 51.79.228.122 443]
+Err:8 https://enterprise.proxmox.com/debian/pve trixie InRelease
+  401  Unauthorized [IP: 51.79.228.122 443]
+Error: Failed to fetch https://enterprise.proxmox.com/debian/ceph-squid/dists/trixie/InRelease  401  Unauthorized [IP: 51.79.228.122 443]
+Error: The repository 'https://enterprise.proxmox.com/debian/ceph-squid trixie InRelease' is not signed.
+Notice: Updating from such a repository can't be done securely, and is therefore disabled by default.
+Notice: See apt-secure(8) manpage for repository creation and user configuration details.
+Error: Failed to fetch https://enterprise.proxmox.com/debian/pve/dists/trixie/InRelease  401  Unauthorized [IP: 51.79.228.122 443]
+Error: The repository 'https://enterprise.proxmox.com/debian/pve trixie InRelease' is not signed.
+Notice: Updating from such a repository can't be done securely, and is therefore disabled by default.
+Notice: See apt-secure(8) manpage for repository creation and user configuration details.
+```
+以下2ファイルを、以下のように編集
+```
+root@pve:~# cat /etc/apt/sources.list.d/pve-enterprise.sources 
+Enabled: no
+Types: deb
+URIs: https://enterprise.proxmox.com/debian/pve
+Suites: trixie
+Components: pve-enterprise
+Signed-By: /usr/share/keyrings/proxmox-archive-keyring.gpg
+root@pve:~# cat /etc/apt/sources.list.d/pve-no-subscription.sources 
+Types: deb
+URIs: http://download.proxmox.com/debian/pve
+Suites: trixie
+Components: pve-no-subscription
+Signed-By: /usr/share/keyrings/proxmox-archive-keyring.gpg
+root@pve:~#
+```
+cephに関するエラーがあったので、無償版にする
+```
+root@pve:~# ls -l /etc/apt/sources.list.d | grep -i ceph || true
+-rw-r--r-- 1 root root 163 Aug  5 19:42 ceph.sources
+root@pve:~# cat /etc/apt/sources.list.d/ceph.sources 
+Types: deb
+URIs: https://enterprise.proxmox.com/debian/ceph-squid
+Suites: trixie
+Components: enterprise
+Signed-By: /usr/share/keyrings/proxmox-archive-keyring.gpg
+root@pve:~# sed -i '1i Enabled: no' /etc/apt/sources.list.d/ceph.sources 
+```
+解消
+```
+root@pve:~# apt update
+Hit:1 http://deb.debian.org/debian trixie InRelease
+Hit:2 http://deb.debian.org/debian trixie-updates InRelease                                      
+Hit:3 http://security.debian.org/debian-security trixie-security InRelease                       
+Hit:4 http://download.proxmox.com/debian/pve trixie InRelease
+40 packages can be upgraded. Run 'apt list --upgradable' to see them.
+root@pve:~# 
+```
+念の為もう一度アップグレード
+```
+root@pve:~# apt full-upgrade -y
+```
+
 再起動
 ```
 reboot
@@ -1248,6 +1314,30 @@ root@pve:~#
 <img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/7806fa6c-835d-4549-b37b-58a2e6971c7d" />
 
 <img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/c8a36aac-98db-4e1e-9b8e-48ef60502d49" />
+
+# 写真をSambaに移動
+
+```
+root@pve:/hdds/pictures# mkdir _inbox
+```
+権限調整（editorsグループメンバーが書き込めるようにする）
+```
+root@pve:/hdds/pictures# ls -lah
+total 1.5K
+drwxrwsr-x 3 root editors 3 Sep 22 09:36 .
+drwxr-xr-x 5 root root    5 Sep 22 08:56 ..
+drwxr-sr-x 2 root editors 2 Sep 22 09:36 _inbox
+root@pve:/hdds/pictures# chmod 2775 _inbox
+root@pve:/hdds/pictures# ls -lah
+total 1.5K
+drwxrwsr-x 3 root editors 3 Sep 22 09:36 .
+drwxr-xr-x 5 root root    5 Sep 22 08:56 ..
+drwxrwsr-x 2 root editors 2 Sep 22 09:36 _inbox
+root@pve:/hdds/pictures# find /hdds/pictures/_inbox -type d -exec chmod 2775 {} \;
+root@pve:/hdds/pictures# find /hdds/pictures/_inbox -type f -exec chmod 664 {} \;
+root@pve:/hdds/pictures# 
+```
+
 
 **ISO**：Windows 11 (x64 24H2 など)、**virtio-win ISO**もアップロード（`local`のISO領域へ）
 
