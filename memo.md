@@ -1328,6 +1328,20 @@ root@pve:~#
 
 <img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/c8a36aac-98db-4e1e-9b8e-48ef60502d49" />
 
+# プライベートIPを固定する
+
+今のIPは、、、
+
+Settings -> Network & internet -> Ethernet -> IPv4 address:192.168.11.16
+
+192.168.11.100 にしたい(空いてることはpingで確認済み)
+
+<img width="831" height="520" alt="image" src="https://github.com/user-attachments/assets/1e943938-0547-48e7-a5af-06a740c66d01" />
+
+<img width="502" height="631" alt="image" src="https://github.com/user-attachments/assets/374dd846-9de0-4b02-b917-0a957346b36e" />
+
+command prompt で、ipconfigで、確かに変わっていることを確認
+
 # 写真をSambaに移動
 
 ```
@@ -1369,6 +1383,10 @@ exiftool -r -P -d %Y%m   '-Directory</hdds/pictures/${MediaCreateDate}'   /hdds/
 ```
 exiftool -r -P -d %Y%m   '-Directory</hdds/pictures/${FileModifyDate}'   /hdds/pictures/_inbox
 ```
+
+
+
+
 
 
 **ISO**：Windows 11 (x64 24H2 など)、**virtio-win ISO**もアップロード（`local`のISO領域へ）
