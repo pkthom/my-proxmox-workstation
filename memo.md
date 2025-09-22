@@ -1351,17 +1351,12 @@ root@pve:/hdds/pictures#
 ```
 root@pve:~# apt install -y libimage-exiftool-perl
 ```
+振り分けコマンド
 ```
-root@pve:/hdds/pictures/_inbox# ls -lah
-total 3.8M
-drwxrwsr-x 2 root   editors    5 Sep 22 10:19 .
-drwxrwsr-x 3 root   editors    3 Sep 22 09:36 ..
--rwxr--r-- 1 editor editor  2.3M Sep 22 10:19 IMG_4394.HEIC
--rwxr--r-- 1 editor editor  1.0M Sep 22 10:19 IMG_5011.JPG
--rwxr--r-- 1 editor editor  1.6M Sep 22 10:19 IMG_5501.HEIC
-root@pve:/hdds/pictures/_inbox# 
+exiftool -r -P -d %Y%m \
+  '-Directory</hdds/pictures/${DateTimeOriginal}' \
+  /hdds/pictures/_inbox
 ```
-
 
 **ISO**：Windows 11 (x64 24H2 など)、**virtio-win ISO**もアップロード（`local`のISO領域へ）
 
