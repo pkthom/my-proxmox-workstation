@@ -1124,7 +1124,9 @@ NetKVM\w11\amd64　を選択
 
 <img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/2d83a1d0-1ea4-4be6-b57f-2614f75ce071" />
 
-私用かビジネスか、を聞かれたがスクショ忘れ　私用を選んだ
+私用かビジネスか　私用を選んだ
+<img width="2169" height="1226" alt="image" src="https://github.com/user-attachments/assets/e4600482-87d7-43c5-84ad-e4f59de3b0ce" />
+
 
 <img width="1849" height="1137" alt="image" src="https://github.com/user-attachments/assets/6840262f-9de0-4067-9068-971880efd1ba" />
 
