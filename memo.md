@@ -1497,13 +1497,17 @@ update VM 9000: -ciuser ubuntu
 
 <img width="397" height="145" alt="image" src="https://github.com/user-attachments/assets/a8e39c8f-488d-427b-abe5-b4207812caff" />
 
+DHCPでIPを振るようにする（これをしないと、IPが振られなかった）
+```
+root@pve:~# qm set 9000 --ipconfig0 ip=dhcp
+update VM 9000: -ipconfig0 ip=dhcp
+```
 
 開発用VMの鍵を発行する
 <img width="397" height="145" alt="image" src="https://github.com/user-attachments/assets/4be0b9f8-01b8-4ac6-b49a-c6d2d950bb06" />
 
 鍵をcloud init に登録する
 <img width="1352" height="757" alt="image" src="https://github.com/user-attachments/assets/dda39cd1-77ae-4b6a-a0e1-50e4f8e24275" />
-
 
 ```
 起動順番をUbuntuディスクイメージ（SCSI0）から　にする
@@ -1512,10 +1516,19 @@ root@pve:~# qm set 9000 --boot order=scsi0
 update VM 9000: -boot order=scsi0
 root@pve:~# 
 ```
+
+ubuntu ユーザーのパスワードも登録しておく -> 「Regenerate Image」で反映する
+<img width="490" height="357" alt="image" src="https://github.com/user-attachments/assets/706e433c-1eec-4f99-9097-84639388487f" />
+
 テンプレート化する
 ```
 root@pve:~# qm template 9000
 ```
+
+テンプレートのアイコンが変わる
+
+<img width="162" height="34" alt="image" src="https://github.com/user-attachments/assets/52429cdc-02b2-4530-84fb-f17bd0d473ae" />
+
 テンプレートから、VMを作る
 ```
 root@pve:~# qm clone 9000 9010 --name ubuntu-dev-01 --full 0
@@ -1526,9 +1539,30 @@ create linked clone of drive scsi0 (local:9000/base-9000-disk-0.raw)
 clone 9000/base-9000-disk-0.raw: images, vm-9010-disk-0.qcow2, 9010 to vm-9010-disk-0.qcow2 (base=../9000/base-9000-disk-0.raw)
 Formatting '/var/lib/vz/images/9010/vm-9010-disk-0.qcow2', fmt=qcow2 cluster_size=131072 extended_l2=on preallocation=off compression_type=zlib size=3758096384 backing_file=../9000/base-9000-disk-0.raw backing_fmt=raw lazy_refcounts=off refcount_bits=16
 root@pve:~# 
-
-
 ```
+
+<img width="798" height="526" alt="image" src="https://github.com/user-attachments/assets/668ff1f9-84e6-46ad-9771-b9a782575c6d" />
+
+VMを開始する
+```
+root@pve:~# qm start 9010
+generating cloud-init ISO
+root@pve:~# 
+```
+Ubuntuユーザーで、先ほど指定したパスワードでログインできる
+
+<img width="1835" height="1131" alt="image" src="https://github.com/user-attachments/assets/f1105699-246e-4782-9a61-fe126ae57d9d" />
+
+IPを確認する
+<img width="683" height="208" alt="image" src="https://github.com/user-attachments/assets/2a7f8d67-f6b7-417f-8344-1eaadf6fce73" />
+
+開発用windows VMからSSHできた
+
+<img width="654" height="123" alt="image" src="https://github.com/user-attachments/assets/f25daeb3-06ed-4f11-824a-aad44d9ace8d" />
+
+<img width="599" height="143" alt="image" src="https://github.com/user-attachments/assets/988bc65f-ecb2-42d9-acb1-ba76292e0f71" />
+
+
 
 **ISO**：Windows 11 (x64 24H2 など)、**virtio-win ISO**もアップロード（`local`のISO領域へ）
 
