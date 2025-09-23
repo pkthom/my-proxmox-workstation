@@ -1495,6 +1495,13 @@ root@pve:~# qm set 9000 --ciuser ubuntu
 update VM 9000: -ciuser ubuntu
 ```
 
+<img width="397" height="145" alt="image" src="https://github.com/user-attachments/assets/a8e39c8f-488d-427b-abe5-b4207812caff" />
+
+
+開発用VMの鍵を発行する
+<img width="397" height="145" alt="image" src="https://github.com/user-attachments/assets/4be0b9f8-01b8-4ac6-b49a-c6d2d950bb06" />
+
+
 
 ```
 起動順番をUbuntuディスクイメージ（SCSI0）から　にする
@@ -1850,4 +1857,8 @@ Ryzen 9 7900 = 12C/24T, メモリ 128GB なので余裕あり
 ---
 
 必要なら、cloudflared（サイト公開）や、バックアップ（Proxmoxバックアップ→`hdds`や外付け、さらに外部クラウド）も後追いで整えましょう。ここまで完了すれば、**OSはZFSミラーで堅牢、VM群はNVMeで高速、編集素材はD/E直付け、納品/保管はX（SMBミラー）へ整理**という狙い通りの構成で運用できます。
+
+
+
+
 
