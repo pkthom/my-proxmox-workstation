@@ -1385,9 +1385,124 @@ exiftool -r -P -d %Y%m   '-Directory</hdds/pictures/${FileModifyDate}'   /hdds/p
 ```
 
 
+# 開発用windows VM作成
+
+CPUだけ6Core あとは全く同じ
+
+# UbuntuVM作成
+
+cloud image をダウンロード
+
+<img width="1530" height="1338" alt="image" src="https://github.com/user-attachments/assets/8d4692f8-2c01-422c-adaa-1f7c44bd6ad4" />
+
+Proxmoxにアップロードしたいが、アップロードできる場所がない
+
+<img width="1593" height="405" alt="image" src="https://github.com/user-attachments/assets/498ae6ff-d4ad-4dcb-bc00-d34ff8ad8a26" />
+
+CLIで local (/var/lib/vz/ 下) にアップロードする
+
+```
+root@pve:/var/lib/vz/images# wget https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img \
+     -O ubuntu-24.04-cloudimg-amd64.img
+--2025-09-23 11:19:59--  https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
+Resolving cloud-images.ubuntu.com (cloud-images.ubuntu.com)... 185.125.190.37, 185.125.190.40, 2620:2d:4000:1::17, ...
+Connecting to cloud-images.ubuntu.com (cloud-images.ubuntu.com)|185.125.190.37|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 618925568 (590M) [application/octet-stream]
+Saving to: ‘ubuntu-24.04-cloudimg-amd64.img’
+
+ubuntu-24.04-cloudimg-amd64.img   100%[=============================================================>] 590.25M  5.79MB/s    in 50s     
+
+2025-09-23 11:20:50 (11.8 MB/s) - ‘ubuntu-24.04-cloudimg-amd64.img’ saved [618925568/618925568]
+
+root@pve:/var/lib/vz/images# ls
+ubuntu-24.04-cloudimg-amd64.img
+```
+
+テンプレートの箱だけ一旦作る
+
+<img width="1835" height="1131" alt="image" src="https://github.com/user-attachments/assets/9ec901b7-5714-43c1-b1c2-85aa3d933c60" />
+
+<img width="1835" height="1131" alt="image" src="https://github.com/user-attachments/assets/f009a2b9-2f7a-4200-9b72-57d243a8b9d3" />
+
+<img width="1835" height="1131" alt="image" src="https://github.com/user-attachments/assets/19ca79be-95c2-4420-a1ec-75dc5d80aec0" />
+
+左の scsi0 を選んで、右上のゴミ箱をクリック → 既存ディスクを削除
+
+何もディスクがない状態で Next →
+<img width="1835" height="1131" alt="image" src="https://github.com/user-attachments/assets/cd6b6782-8016-4257-98e7-b94099eb4685" />
+
+<img width="1835" height="1131" alt="image" src="https://github.com/user-attachments/assets/345104b2-af22-4ea4-ab09-df43651ef917" />
+<img width="1835" height="1131" alt="image" src="https://github.com/user-attachments/assets/40491174-7b33-4929-94ce-2d5e79634dbd" />
+<img width="1835" height="1131" alt="image" src="https://github.com/user-attachments/assets/189a6176-74ce-41d0-b3cf-d6869cd19fe1" />
+<img width="1835" height="1131" alt="image" src="https://github.com/user-attachments/assets/34cd8c77-1d18-4ba9-8be3-f04fe9cb1ed8" />
+
+箱をテンプレートとして充実させていく
+
+仮想マシンID 9000 専用に、ubuntu-24.04-cloudimg-amd64.img というディスクイメージを local というストレージにインポートする
+```
+root@pve:/var/lib/vz/images# qm importdisk 9000 ubuntu-24.04-cloudimg-amd64.img local
+importing disk 'ubuntu-24.04-cloudimg-amd64.img' to VM 9000 ...
+Formatting '/var/lib/vz/images/9000/vm-9000-disk-0.raw', fmt=raw size=3758096384 preallocation=off
+transferred 0.0 B of 3.5 GiB (0.00%)
+transferred 35.8 MiB of 3.5 GiB (1.00%)
+transferred 71.7 MiB of 3.5 GiB (2.00%)
+transferred 109.0 MiB of 3.5 GiB (3.04%)
+transferred 144.8 MiB of 3.5 GiB (4.04%)
+...
+transferred 3.4 GiB of 3.5 GiB (97.14%)
+transferred 3.4 GiB of 3.5 GiB (98.14%)
+transferred 3.5 GiB of 3.5 GiB (99.14%)
+transferred 3.5 GiB of 3.5 GiB (100.00%)
+transferred 3.5 GiB of 3.5 GiB (100.00%)
+unused0: successfully imported disk 'local:9000/vm-9000-disk-0.raw'
+```
+その結果として、9000 というディレクトリが作成され、その中に vm-9000-disk-0.raw という名前でディスクイメージが保存されます。
+```
+root@pve:/var/lib/vz/images# ls
+9000  ubuntu-24.04-cloudimg-amd64.img
+root@pve:/var/lib/vz/images# cd 9000/
+root@pve:/var/lib/vz/images/9000# ls
+vm-9000-disk-0.raw
+```
+↑でインポートしたイメージを、アタッチする（SCSI0にアタッチ）
+```
+root@pve:~# pvesm list local | grep 9000
+local:9000/vm-9000-disk-0.raw        raw     images    3758096384 9000
+root@pve:~# qm set 9000 --scsihw virtio-scsi-single --scsi0 local:9000/vm-9000-disk-0.raw
+update VM 9000: -scsi0 local:9000/vm-9000-disk-0.raw -scsihw virtio-scsi-single
+```
+アタッチできた
+<img width="1791" height="1087" alt="image" src="https://github.com/user-attachments/assets/0caf8069-a259-4aa8-aeb3-cc1dd4f8932e" />
+
+Proxmoxの仮想マシンID 9000 に、Cloud-init の設定ディスクを IDE2 デバイスとしてアタッチしています。
+```
+root@pve:~# qm set 9000 --ide2 local:cloudinit
+update VM 9000: -ide2 local:cloudinit
+Formatting '/var/lib/vz/images/9000/vm-9000-cloudinit.qcow2', fmt=qcow2 cluster_size=65536 extended_l2=off preallocation=metadata compression_type=zlib size=4194304 lazy_refcounts=off refcount_bits=16
+ide2: successfully created disk 'local:9000/vm-9000-cloudinit.qcow2,media=cdrom'
+generating cloud-init ISO
+```
+Cloud-init とは？
+```
+Cloud-initは、VMが初めて起動する際に、ネットワーク設定、ホスト名、ユーザーアカウント、SSHキー などを自動的に設定するためのオープンソースのパッケージです。
+
+このコマンドを実行することで、手動でIPアドレスやパスワードを設定しなくても、VMが起動時にProxmox WebUIの「Cloud-init」タブで設定した内容を自動で適用できるようになります。これにより、テンプレートからVMをクローンした後の初期設定が不要になり、作業が大幅に効率化されます。
+
+Cloud-init の設定
+```
+root@pve:~# qm set 9000 --ciuser ubuntu
+update VM 9000: -ciuser ubuntu
+```
 
 
-
+```
+起動順番をUbuntuディスクイメージ（SCSI0）から　にする
+```
+root@pve:~# qm set 9000 --boot order=scsi0
+update VM 9000: -boot order=scsi0
+root@pve:~# 
+```
 
 **ISO**：Windows 11 (x64 24H2 など)、**virtio-win ISO**もアップロード（`local`のISO領域へ）
 
