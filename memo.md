@@ -1501,6 +1501,8 @@ update VM 9000: -ciuser ubuntu
 開発用VMの鍵を発行する
 <img width="397" height="145" alt="image" src="https://github.com/user-attachments/assets/4be0b9f8-01b8-4ac6-b49a-c6d2d950bb06" />
 
+鍵をcloud init に登録する
+<img width="1352" height="757" alt="image" src="https://github.com/user-attachments/assets/dda39cd1-77ae-4b6a-a0e1-50e4f8e24275" />
 
 
 ```
@@ -1509,6 +1511,23 @@ update VM 9000: -ciuser ubuntu
 root@pve:~# qm set 9000 --boot order=scsi0
 update VM 9000: -boot order=scsi0
 root@pve:~# 
+```
+テンプレート化する
+```
+root@pve:~# qm template 9000
+```
+テンプレートから、VMを作る
+```
+root@pve:~# qm clone 9000 9010 --name ubuntu-dev-01 --full 0
+create linked clone of drive efidisk0 (nvme1:base-9000-disk-0)
+create full clone of drive ide2 (local:9000/vm-9000-cloudinit.qcow2)
+Formatting '/var/lib/vz/images/9010/vm-9010-cloudinit.qcow2', fmt=qcow2 cluster_size=65536 extended_l2=off preallocation=metadata compression_type=zlib size=4194304 lazy_refcounts=off refcount_bits=16
+create linked clone of drive scsi0 (local:9000/base-9000-disk-0.raw)
+clone 9000/base-9000-disk-0.raw: images, vm-9010-disk-0.qcow2, 9010 to vm-9010-disk-0.qcow2 (base=../9000/base-9000-disk-0.raw)
+Formatting '/var/lib/vz/images/9010/vm-9010-disk-0.qcow2', fmt=qcow2 cluster_size=131072 extended_l2=on preallocation=off compression_type=zlib size=3758096384 backing_file=../9000/base-9000-disk-0.raw backing_fmt=raw lazy_refcounts=off refcount_bits=16
+root@pve:~# 
+
+
 ```
 
 **ISO**：Windows 11 (x64 24H2 など)、**virtio-win ISO**もアップロード（`local`のISO領域へ）
