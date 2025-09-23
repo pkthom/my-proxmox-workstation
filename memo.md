@@ -1488,6 +1488,7 @@ Cloud-init とは？
 Cloud-initは、VMが初めて起動する際に、ネットワーク設定、ホスト名、ユーザーアカウント、SSHキー などを自動的に設定するためのオープンソースのパッケージです。
 
 このコマンドを実行することで、手動でIPアドレスやパスワードを設定しなくても、VMが起動時にProxmox WebUIの「Cloud-init」タブで設定した内容を自動で適用できるようになります。これにより、テンプレートからVMをクローンした後の初期設定が不要になり、作業が大幅に効率化されます。
+```
 
 Cloud-init の設定
 ```
@@ -1503,13 +1504,19 @@ root@pve:~# qm set 9000 --ipconfig0 ip=dhcp
 update VM 9000: -ipconfig0 ip=dhcp
 ```
 
+60GBにする
+```
+root@pve:~# qm disk resize 9000 scsi0 60G
+Image resized.
+```
+
 開発用VMの鍵を発行する
 <img width="397" height="145" alt="image" src="https://github.com/user-attachments/assets/4be0b9f8-01b8-4ac6-b49a-c6d2d950bb06" />
 
 鍵をcloud init に登録する
 <img width="1352" height="757" alt="image" src="https://github.com/user-attachments/assets/dda39cd1-77ae-4b6a-a0e1-50e4f8e24275" />
 
-```
+
 起動順番をUbuntuディスクイメージ（SCSI0）から　にする
 ```
 root@pve:~# qm set 9000 --boot order=scsi0
@@ -1518,7 +1525,8 @@ root@pve:~#
 ```
 
 ubuntu ユーザーのパスワードも登録しておく -> 「Regenerate Image」で反映する
-<img width="490" height="357" alt="image" src="https://github.com/user-attachments/assets/706e433c-1eec-4f99-9097-84639388487f" />
+<img width="547" height="431" alt="image" src="https://github.com/user-attachments/assets/e8281404-2f58-4d02-9109-e3eb8369c826" />
+
 
 テンプレート化する
 ```
@@ -1541,7 +1549,8 @@ Formatting '/var/lib/vz/images/9010/vm-9010-disk-0.qcow2', fmt=qcow2 cluster_siz
 root@pve:~# 
 ```
 
-<img width="798" height="526" alt="image" src="https://github.com/user-attachments/assets/668ff1f9-84e6-46ad-9771-b9a782575c6d" />
+スペックが指定通りになっている
+<img width="1141" height="511" alt="image" src="https://github.com/user-attachments/assets/547651b9-e7af-4ef4-b68c-36eca5a472c5" />
 
 VMを開始する
 ```
@@ -1561,6 +1570,7 @@ IPを確認する
 <img width="654" height="123" alt="image" src="https://github.com/user-attachments/assets/f25daeb3-06ed-4f11-824a-aad44d9ace8d" />
 
 <img width="599" height="143" alt="image" src="https://github.com/user-attachments/assets/988bc65f-ecb2-42d9-acb1-ba76292e0f71" />
+
 
 
 
