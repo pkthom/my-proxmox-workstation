@@ -1384,6 +1384,108 @@ exiftool -r -P -d %Y%m   '-Directory</hdds/pictures/${MediaCreateDate}'   /hdds/
 exiftool -r -P -d %Y%m   '-Directory</hdds/pictures/${FileModifyDate}'   /hdds/pictures/_inbox
 ```
 
+Macの写真をSambaに移す
+
+写真アプリ -> File -> Export -> Export unmodified Original... -> 
+
+<img width="542" height="221" alt="image" src="https://github.com/user-attachments/assets/a62fbf6f-7d53-49a9-9895-babf4abd4f72" />
+
+-> Samba(192.168.11.10/pictures/_inbox/)を選択 -> Export Originals
+
+約24時間後、エラーなしで終わる
+
+ファイル数数える
+```
+root@pve:~# find /hdds/pictures/_inbox/ -type f | wc -l
+25745
+```
+```
+hdds/pictures     3.5T  327G  3.2T  10% /hdds/pictures
+```
+```
+root@pve:~# exiftool -r -P -d %Y%m   '-Directory</hdds/pictures/${DateTimeOriginal}'   /hdds/pictures/_inbox
+...
+Warning: No writable tags set from /hdds/pictures/_inbox/DHIKE0775.MOV
+Warning: [minor] Tag 'DateTimeOriginal' not defined - /hdds/pictures/_inbox/IMG_5183.JPG
+Warning: No writable tags set from /hdds/pictures/_inbox/IMG_5183.JPG
+Warning: [minor] The ExtractEmbedded option may find more tags in the media data - /hdds/pictures/_inbox/IMG_2100.MOV
+Warning: No writable tags set from /hdds/pictures/_inbox/IMG_2100.MOV
+Warning: [minor] Tag 'DateTimeOriginal' not defined - /hdds/pictures/_inbox/IMG_7673 (6).JPG
+Warning: No writable tags set from /hdds/pictures/_inbox/IMG_7673 (6).JPG
+    1 directories scanned
+   32 directories created
+18579 image files updated
+ 6968 image files unchanged
+root@pve:~# 
+root@pve:~# find /hdds/pictures/_inbox/ -type f | wc -l
+7166
+```
+```
+root@pve:~# exiftool -r -P -d %Y%m   '-Directory</hdds/pictures/${CreateDate}'   /hdds/pictures/_inbox
+...
+Warning: No writable tags set from /hdds/pictures/_inbox/IMG_5183.JPG
+Warning: [minor] The ExtractEmbedded option may find more tags in the media data - /hdds/pictures/_inbox/IMG_2100.MOV
+Warning: [minor] Tag 'CreateDate' not defined - /hdds/pictures/_inbox/IMG_7673 (6).JPG
+Warning: No writable tags set from /hdds/pictures/_inbox/IMG_7673 (6).JPG
+    1 directories scanned
+    1 directories created
+ 4737 image files updated
+ 2231 image files unchanged
+root@pve:~#
+root@pve:~# find /hdds/pictures/_inbox/ -type f | wc -l
+2429
+```
+```
+root@pve:~# exiftool -r -P -d %Y%m   '-Directory</hdds/pictures/${MediaCreateDate}'   /hdds/pictures/_inbox
+...
+Warning: No writable tags set from /hdds/pictures/_inbox/IMG_5183.JPG
+Warning: [minor] Tag 'MediaCreateDate' not defined - /hdds/pictures/_inbox/IMG_7673 (6).JPG
+Warning: No writable tags set from /hdds/pictures/_inbox/IMG_7673 (6).JPG
+    1 directories scanned
+    0 image files updated
+ 2231 image files unchanged
+root@pve:~# find /hdds/pictures/_inbox/ -type f | wc -l
+2429
+```
+```
+root@pve:~# exiftool -r -P -d %Y%m   '-Directory</hdds/pictures/${FileModifyDate}'   /hdds/pictures/_inbox
+...
+Warning: [minor] Text/EXIF chunk(s) found after PNG IDAT (may be ignored by some readers) [x2] - /hdds/pictures/_inbox/IMG_0160.PNG
+Warning: IPTCDigest is not current. XMP may be out of sync - /hdds/pictures/_inbox/IMG_0019 (1).JPG
+    1 directories scanned
+ 2231 image files updated
+root@pve:~# find /hdds/pictures/_inbox/ -type f | wc -l
+198
+```
+```
+root@pve:/hdds/pictures/_inbox# ls
+'favicon (1).ico'    'IMG_2914 (1)O.aae'  'IMG_3092 (1)O.aae'  'IMG_3772 (1)O.aae'  'IMG_4151 (2)O.aae'   IMG_O1600.aae   IMG_O3052.aae   IMG_O3411.aae
+ favicon.ico         'IMG_2951 (1)O.aae'  'IMG_3093 (1)O.aae'  'IMG_3772 (2)O.aae'  'IMG_4200 (1)O.aae'   IMG_O1603.aae   IMG_O3053.aae   IMG_O3614.aae
+'IMG_2734 (1)O.aae'  'IMG_2952 (1)O.aae'  'IMG_3094 (1)O.aae'  'IMG_3773 (1)O.aae'  'IMG_4200 (2)O.aae'   IMG_O1604.aae   IMG_O3054.aae   IMG_O4016.aae
+'IMG_2735 (2)O.aae'  'IMG_2953 (1)O.aae'  'IMG_3095 (1)O.aae'  'IMG_3773 (2)O.aae'  'IMG_4201 (1)O.aae'   IMG_O2734.aae   IMG_O3055.aae   IMG_O4017.aae
+'IMG_2735 (4)O.aae'  'IMG_2954 (1)O.aae'  'IMG_3096 (1)O.aae'  'IMG_3774 (2)O.aae'  'IMG_4201 (2)O.aae'   IMG_O2736.aae   IMG_O3056.aae   IMG_O4227.aae
+'IMG_2736 (1)O.aae'  'IMG_2955 (1)O.aae'  'IMG_3097 (1)O.aae'  'IMG_3774 (3)O.aae'  'IMG_4202 (1)O.aae'   IMG_O2737.aae   IMG_O3057.aae   IMG_O4236.aae
+'IMG_2737 (1)O.aae'  'IMG_2955 (2)O.aae'  'IMG_3098 (1)O.aae'  'IMG_4005 (1)O.aae'  'IMG_4202 (2)O.aae'   IMG_O2739.aae   IMG_O3059.aae   IMG_O6387.aae
+'IMG_2738 (1)O.aae'  'IMG_2956 (1)O.aae'  'IMG_3099 (1)O.aae'  'IMG_4005 (2)O.aae'  'IMG_4227 (1)O.aae'   IMG_O2740.aae   IMG_O3060.aae   IMG_O6424.aae
+'IMG_2738 (3)O.aae'  'IMG_2956 (2)O.aae'  'IMG_3100 (1)O.aae'  'IMG_4006 (2)O.aae'  'IMG_4234 (1)O.aae'   IMG_O2741.aae   IMG_O3061.aae   IMG_O7116.aae
+'IMG_2739 (1)O.aae'  'IMG_3017 (1)O.aae'  'IMG_3101 (1)O.aae'  'IMG_4006 (3)O.aae'  'IMG_4234 (2)O.aae'   IMG_O2907.aae   IMG_O3091.aae   MVI_0001.AVI
+'IMG_2740 (1)O.aae'  'IMG_3024 (1)O.aae'  'IMG_3102 (1)O.aae'  'IMG_4016 (1)O.aae'  'IMG_4236 (1)O.aae'   IMG_O2908.aae   IMG_O3092.aae   MVI_0142.AVI
+'IMG_2741 (2)O.aae'  'IMG_3050 (1)O.aae'  'IMG_3103 (1)O.aae'  'IMG_4017 (1)O.aae'  'IMG_4247 (2)O.aae'   IMG_O2909.aae   IMG_O3093.aae   MVI_0826.AVI
+'IMG_2742 (1)O.aae'  'IMG_3051 (1)O.aae'  'IMG_3104 (1)O.aae'  'IMG_4084 (2)O.aae'  'IMG_4247 (3)O.aae'   IMG_O2910.aae   IMG_O3094.aae   MVI_0828.AVI
+'IMG_2742 (3)O.aae'  'IMG_3052 (1)O.aae'  'IMG_3232 (1)O.aae'  'IMG_4084 (3)O.aae'  'IMG_4248 (2)O.aae'   IMG_O2911.aae   IMG_O3095.aae   MVI_0829.AVI
+'IMG_2743 (1)O.aae'  'IMG_3053 (1)O.aae'  'IMG_3280 (1)O.aae'  'IMG_4085 (2)O.aae'  'IMG_4248 (3)O.aae'   IMG_O2912.aae   IMG_O3096.aae   MVI_0830.AVI
+'IMG_2743 (2)O.aae'  'IMG_3054 (1)O.aae'  'IMG_3281 (1)O.aae'  'IMG_4085 (3)O.aae'  'IMG_4249 (2)O.aae'   IMG_O2913.aae   IMG_O3097.aae   MVI_0841.AVI
+'IMG_2745 (1)O.aae'  'IMG_3055 (1)O.aae'  'IMG_3281 (2)O.aae'  'IMG_4088 (1)O.aae'  'IMG_4249 (3)O.aae'   IMG_O2914.aae   IMG_O3098.aae   MVI_0842.AVI
+'IMG_2745 (2)O.aae'  'IMG_3056 (1)O.aae'  'IMG_3411 (1)O.aae'  'IMG_4088 (2)O.aae'  'IMG_4250 (2)O.aae'   IMG_O2951.aae   IMG_O3099.aae   MVI_0843.AVI
+'IMG_2907 (1)O.aae'  'IMG_3057 (1)O.aae'  'IMG_3615 (1)O.aae'  'IMG_4101 (1)O.aae'  'IMG_4250 (3)O.aae'   IMG_O2952.aae   IMG_O3100.aae   MVI_0851.AVI
+'IMG_2908 (1)O.aae'  'IMG_3058 (1)O.aae'  'IMG_3746 (1)O.aae'  'IMG_4101 (2)O.aae'  'IMG_4306 (2)O.aae'   IMG_O2953.aae   IMG_O3101.aae   MVI_0866.AVI
+'IMG_2909 (1)O.aae'  'IMG_3058 (2)O.aae'  'IMG_3746 (2)O.aae'  'IMG_4149 (1)O.aae'  'IMG_4306 (3)O.aae'   IMG_O2954.aae   IMG_O3102.aae   MVI_0867.AVI
+'IMG_2910 (1)O.aae'  'IMG_3059 (1)O.aae'  'IMG_3770 (1)O.aae'  'IMG_4149 (2)O.aae'  'IMG_4307 (2)O.aae'   IMG_O3017.aae   IMG_O3103.aae   MVI_0868.AVI
+'IMG_2911 (1)O.aae'  'IMG_3060 (1)O.aae'  'IMG_3770 (2)O.aae'  'IMG_4150 (1)O.aae'  'IMG_4307 (3)O.aae'   IMG_O3024.aae   IMG_O3104.aae   Thumbs.db
+'IMG_2912 (1)O.aae'  'IMG_3061 (1)O.aae'  'IMG_3771 (1)O.aae'  'IMG_4150 (2)O.aae'  'IMG_4418 (1)O.aae'   IMG_O3050.aae   IMG_O3232.aae
+'IMG_2913 (1)O.aae'  'IMG_3091 (1)O.aae'  'IMG_3771 (2)O.aae'  'IMG_4151 (1)O.aae'   IMG_O1599.aae        IMG_O3051.aae   IMG_O3280.aae
+root@pve:/hdds/pictures/_inbox# 
+```
 
 # 開発用windows VM作成
 
