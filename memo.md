@@ -1782,6 +1782,11 @@ GPU側で、Capcutを指定する
 windowsグラフィックス設定　Capcutを追加し、高パフォーマンス設定
 <img width="3360" height="2100" alt="image" src="https://github.com/user-attachments/assets/34a443a9-84ba-4d52-afe3-59db2a0592ed" />
 
+諸々をDドライブに保存するため、Dドライブ下に、Project/CapCut/ を作り、その下に下記を作る
+<img width="3360" height="2100" alt="image" src="https://github.com/user-attachments/assets/4359d93f-fb3a-4f2d-89ad-df0b7a52cc27" />
+
+<img width="1335" height="874" alt="image" src="https://github.com/user-attachments/assets/39f27af9-9a27-4ae6-ba3d-2fabecb63c70" />
+
 
 **ISO**：Windows 11 (x64 24H2 など)、**virtio-win ISO**もアップロード（`local`のISO領域へ）
 
