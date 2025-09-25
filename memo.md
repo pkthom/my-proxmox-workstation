@@ -1487,6 +1487,91 @@ root@pve:/hdds/pictures/_inbox# ls
 root@pve:/hdds/pictures/_inbox# 
 ```
 
+```
+root@pve:/hdds/pictures# ls
+198001  201710  202009  202205  202212  202311  202401  202403  202405  202407  202409  202411  202501  202503  202505  202507  202509  _inbox_pkthom_bak
+201607  201711  202110  202208  202308  202312  202402  202404  202406  202408  202410  202412  202502  202504  202506  202508  _inbox  left
+```
+```
+root@pve:/hdds/pictures# find _inbox/ -type f | wc -l
+43843
+root@pve:/hdds/pictures# find _inbox_chmerthom_bak/ -type f | wc -l
+43843
+```
+```
+Error: '/hdds/pictures/202407/DSCN1018.JPG' already exists - /hdds/pictures/_inbox/DSCN1018.JPG
+Warning: [minor] Tag 'DateTimeOriginal' not defined - /hdds/pictures/_inbox/e0ec72697dca4e24b9ad25729fb4b949.mov
+Warning: No writable tags set from /hdds/pictures/_inbox/e0ec72697dca4e24b9ad25729fb4b949.mov
+Error: '/hdds/pictures/202404/0205.jpg' already exists - /hdds/pictures/_inbox/0205.jpg
+Warning: [minor] Tag 'DateTimeOriginal' not defined - /hdds/pictures/_inbox/IMG_5183.JPG
+Warning: No writable tags set from /hdds/pictures/_inbox/IMG_5183.JPG
+Warning: [minor] The ExtractEmbedded option may find more tags in the media data - /hdds/pictures/_inbox/IMG_2100.MOV
+Warning: No writable tags set from /hdds/pictures/_inbox/IMG_2100.MOV
+Warning: [minor] Tag 'DateTimeOriginal' not defined - /hdds/pictures/_inbox/IMG_7291.PNG
+Warning: No writable tags set from /hdds/pictures/_inbox/IMG_7291.PNG
+Error: '/hdds/pictures/202504/IMG_4064.JPG' already exists - /hdds/pictures/_inbox/IMG_4064.JPG
+Error: '/hdds/pictures/202411/IMG_6466 (1).HEIC' already exists - /hdds/pictures/_inbox/IMG_6466 (1).HEIC
+Warning: [minor] Tag 'DateTimeOriginal' not defined - /hdds/pictures/_inbox/IMG_8003.JPG
+Warning: No writable tags set from /hdds/pictures/_inbox/IMG_8003.JPG
+    1 directories scanned
+   62 directories created
+21290 image files updated
+11223 image files unchanged
+10229 files weren't updated due to errors
+root@pve:~# 
+root@pve:~# find /hdds/pictures/_inbox -type f | wc -l
+22553
+```
+```
+root@pve:~# exiftool -r -P -d %Y%m   '-Directory</hdds/pictures/${CreateDate}'   /hdds/pictures/_inbox
+...
+Warning: No writable tags set from /hdds/pictures/_inbox/IMG_7291.PNG
+Error: '/hdds/pictures/202504/IMG_4064.JPG' already exists - /hdds/pictures/_inbox/IMG_4064.JPG
+Error: '/hdds/pictures/202411/IMG_6466 (1).HEIC' already exists - /hdds/pictures/_inbox/IMG_6466 (1).HEIC
+Warning: [minor] Tag 'CreateDate' not defined - /hdds/pictures/_inbox/IMG_8003.JPG
+Warning: No writable tags set from /hdds/pictures/_inbox/IMG_8003.JPG
+    1 directories scanned
+    3 directories created
+ 2870 image files updated
+ 5559 image files unchanged
+13023 files weren't updated due to errors
+root@pve:~#
+root@pve:~# find /hdds/pictures/_inbox -type f | wc -l
+19683
+```
+```
+root@pve:~# exiftool -r -P -d %Y%m   '-Directory</hdds/pictures/${MediaCreateDate}'   /hdds/pictures/_inbox
+...
+Warning: No writable tags set from /hdds/pictures/_inbox/IMG_4064.JPG
+Warning: [minor] Tag 'MediaCreateDate' not defined - /hdds/pictures/_inbox/IMG_6466 (1).HEIC
+Warning: No writable tags set from /hdds/pictures/_inbox/IMG_6466 (1).HEIC
+Warning: [minor] Tag 'MediaCreateDate' not defined - /hdds/pictures/_inbox/IMG_8003.JPG
+Warning: No writable tags set from /hdds/pictures/_inbox/IMG_8003.JPG
+    1 directories scanned
+    0 image files updated
+14640 image files unchanged
+ 3942 files weren't updated due to errors
+root@pve:~# find /hdds/pictures/_inbox -type f | wc -l
+19683
+root@pve:~# 
+```
+```
+root@pve:~# exiftool -r -P -d %Y%m   '-Directory</hdds/pictures/${FileModifyDate}'   /hdds/pictures/_inbox
+...
+Warning: [minor] The ExtractEmbedded option may find more tags in the media data - /hdds/pictures/_inbox/IMG_7598.MOV
+Error: '/hdds/pictures/202509/IMG_8810.JPG' already exists - /hdds/pictures/_inbox/IMG_8810.JPG
+Warning: [minor] The ExtractEmbedded option may find more tags in the media data - /hdds/pictures/_inbox/IMG_3486.MOV
+Warning: [minor] The ExtractEmbedded option may find more tags in the media data - /hdds/pictures/_inbox/IMG_1015.MOV
+Error: '/hdds/pictures/202509/IMG_5183.JPG' already exists - /hdds/pictures/_inbox/IMG_5183.JPG
+Warning: [minor] The ExtractEmbedded option may find more tags in the media data - /hdds/pictures/_inbox/IMG_2100.MOV
+    1 directories scanned
+16894 image files updated
+ 1688 files weren't updated due to errors
+root@pve:~# find /hdds/pictures/_inbox -type f | wc -l
+2789
+root@pve:~# 
+```
+
 # 開発用windows VM作成
 
 CPUだけ6Core あとは全く同じ
@@ -1674,6 +1759,28 @@ IPを確認する
 <img width="599" height="143" alt="image" src="https://github.com/user-attachments/assets/988bc65f-ecb2-42d9-acb1-ba76292e0f71" />
 
 
+# Parsec 
+
+ホスト(編集用windows VM)、クライアント(Macbook)両方でParsecをダウンロード
+
+https://parsec.app/downloads
+
+## Windows & NVIDIA 側の準備
+
+GPU側で、Capcutを指定する
+
+<img width="3360" height="2100" alt="image" src="https://github.com/user-attachments/assets/69434029-b627-4911-b433-ddc5e26ca7e3" />
+
+<img width="3360" height="2100" alt="image" src="https://github.com/user-attachments/assets/4a851941-a9e6-475a-991b-3bb918576fa2" />
+
+太字の部分の設定を変更 -> Apply
+
+<img width="699" height="557" alt="image" src="https://github.com/user-attachments/assets/abf376b1-968a-431a-9415-2b839b3e957b" />
+
+<img width="710" height="207" alt="image" src="https://github.com/user-attachments/assets/6fca8f14-1304-4197-98b9-29ede94934c9" />
+
+windowsグラフィックス設定　Capcutを追加し、高パフォーマンス設定
+<img width="3360" height="2100" alt="image" src="https://github.com/user-attachments/assets/34a443a9-84ba-4d52-afe3-59db2a0592ed" />
 
 
 **ISO**：Windows 11 (x64 24H2 など)、**virtio-win ISO**もアップロード（`local`のISO領域へ）
